@@ -24,6 +24,11 @@ namespace Aspose.MeetingNotes.Models
         /// Error message if the transcription failed
         /// </summary>
         public string? ErrorMessage { get; set; }
+
+        /// <summary>
+        /// The complete transcribed text without segmentation
+        /// </summary>
+        public string FullText { get; set; } = string.Empty;
     }
 
     /// <summary>

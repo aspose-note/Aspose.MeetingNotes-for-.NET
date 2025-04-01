@@ -5,7 +5,7 @@ using System.Text;
 namespace Aspose.MeetingNotes.Exporters
 {
     /// <summary>
-    /// Implementation of content export operations
+    /// Default implementation of IContentExporter that handles exporting content to various formats
     /// </summary>
     public class ContentExporter : IContentExporter
     {
@@ -16,75 +16,147 @@ namespace Aspose.MeetingNotes.Exporters
             _logger = logger;
         }
 
-        public async Task<byte[]> ExportToOneNoteAsync(AnalyzedContent content, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Exports content to the specified format
+        /// </summary>
+        public async Task<ExportResult> ExportAsync(
+            AnalyzedContent content,
+            List<ActionItem> actionItems,
+            ExportFormat format,
+            CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Exporting to OneNote format");
-            
-            // Use Aspose.Note for OneNote export
-            // Implementation details here
-            return Array.Empty<byte>();
+            try
+            {
+                _logger.LogInformation($"Exporting content to {format} format");
+
+                var result = new ExportResult { Format = format };
+
+                switch (format)
+                {
+                    case ExportFormat.OneNote:
+                        result.Data = await ExportToOneNoteAsync(content, cancellationToken);
+                        break;
+                    case ExportFormat.Markdown:
+                        result.Text = await ExportToMarkdownAsync(content, cancellationToken);
+                        break;
+                    case ExportFormat.PDF:
+                        result.Data = await ExportToPdfAsync(content, cancellationToken);
+                        break;
+                    case ExportFormat.HTML:
+                        result.Text = await ExportToHtmlAsync(content, cancellationToken);
+                        break;
+                    default:
+                        throw new ArgumentException($"Unsupported export format: {format}");
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting content");
+                throw;
+            }
         }
 
-        public async Task<string> ExportToMarkdownAsync(AnalyzedContent content, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Exports content to OneNote format
+        /// </summary>
+        public async Task<byte[]> ExportToOneNoteAsync(
+            AnalyzedContent content,
+            CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Exporting to Markdown format");
+            // TODO: Implement OneNote export using Aspose.Note
+            throw new NotImplementedException("OneNote export is not yet implemented");
+        }
 
-            var markdown = new StringBuilder();
-            
+        /// <summary>
+        /// Exports content to Markdown format
+        /// </summary>
+        public async Task<string> ExportToMarkdownAsync(
+            AnalyzedContent content,
+            CancellationToken cancellationToken = default)
+        {
+            var sb = new StringBuilder();
+
+            // Add title
+            sb.AppendLine("# Meeting Notes\n");
+
             // Add summary
-            markdown.AppendLine("# Meeting Summary");
-            markdown.AppendLine(content.Summary);
-            markdown.AppendLine();
+            if (!string.IsNullOrEmpty(content.Summary))
+            {
+                sb.AppendLine("## Summary");
+                sb.AppendLine(content.Summary);
+                sb.AppendLine();
+            }
 
             // Add key points
-            markdown.AppendLine("## Key Points");
-            foreach (var point in content.KeyPoints)
+            if (content.KeyPoints.Any())
             {
-                markdown.AppendLine($"- {point}");
+                sb.AppendLine("## Key Points");
+                foreach (var point in content.KeyPoints)
+                {
+                    sb.AppendLine($"- {point}");
+                }
+                sb.AppendLine();
             }
-            markdown.AppendLine();
 
             // Add sections
-            foreach (var section in content.Sections)
+            if (content.Sections.Any())
             {
-                markdown.AppendLine($"## {section.Title}");
-                markdown.AppendLine(section.Content);
-                markdown.AppendLine();
+                sb.AppendLine("## Meeting Content");
+                foreach (var section in content.Sections)
+                {
+                    sb.AppendLine($"### {section.Title}");
+                    sb.AppendLine(section.Content);
+                    sb.AppendLine();
+                }
             }
 
-            return markdown.ToString();
+            // Add Q&A section
+            if (content.QASegments.Any())
+            {
+                sb.AppendLine("## Questions and Answers");
+                foreach (var qa in content.QASegments)
+                {
+                    sb.AppendLine("### Q:");
+                    sb.AppendLine(qa.Question);
+                    sb.AppendLine("### A:");
+                    sb.AppendLine(qa.Answer);
+                    sb.AppendLine();
+                }
+            }
+
+            // Add full transcript
+            if (!string.IsNullOrEmpty(content.TranscribedText))
+            {
+                sb.AppendLine("## Full Transcript");
+                sb.AppendLine(content.TranscribedText);
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
         }
 
-        public async Task<byte[]> ExportToPdfAsync(AnalyzedContent content, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Exports content to PDF format
+        /// </summary>
+        public async Task<byte[]> ExportToPdfAsync(
+            AnalyzedContent content,
+            CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Exporting to PDF format");
-            
-            // Use Aspose.Note for PDF export
-            // Implementation details here
-            return Array.Empty<byte>();
+            // TODO: Implement PDF export using Aspose.Note
+            throw new NotImplementedException("PDF export is not yet implemented");
         }
 
-        public async Task<string> ExportToHtmlAsync(AnalyzedContent content, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Exports content to HTML format
+        /// </summary>
+        public async Task<string> ExportToHtmlAsync(
+            AnalyzedContent content,
+            CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Exporting to HTML format");
-
-            // Use Aspose.Html for HTML conversion
-            var html = new StringBuilder();
-            html.AppendLine("<!DOCTYPE html>");
-            html.AppendLine("<html>");
-            html.AppendLine("<head><title>Meeting Notes</title></head>");
-            html.AppendLine("<body>");
-            
-            // Add content sections
-            html.AppendLine($"<h1>Meeting Summary</h1>");
-            html.AppendLine($"<p>{content.Summary}</p>");
-            
-            // Add other sections
-            
-            html.AppendLine("</body>");
-            html.AppendLine("</html>");
-            
-            return html.ToString();
+            // TODO: Implement HTML export using Aspose.Html
+            throw new NotImplementedException("HTML export is not yet implemented");
         }
     }
 } 

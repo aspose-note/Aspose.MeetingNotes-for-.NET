@@ -34,7 +34,7 @@ namespace Aspose.MeetingNotes.AIIntegration
             
             // Configure Grok API endpoint
             _httpClient.BaseAddress = new Uri("https://api.grok.ai/");
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_options.AIApiKey}");
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_options.AIModelApiKey}");
         }
 
         /// <summary>

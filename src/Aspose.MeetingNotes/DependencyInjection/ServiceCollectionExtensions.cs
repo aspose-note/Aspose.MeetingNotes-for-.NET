@@ -9,6 +9,7 @@ using Aspose.MeetingNotes.ActionItems;
 using Aspose.MeetingNotes.Exporters;
 using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.Monitoring;
+using Aspose.MeetingNotes.Metrics;
 
 namespace Aspose.MeetingNotes.DependencyInjection
 {
@@ -20,9 +21,6 @@ namespace Aspose.MeetingNotes.DependencyInjection
         /// <summary>
         /// Adds MeetingNotes services to the specified IServiceCollection
         /// </summary>
-        /// <param name="services">The IServiceCollection to add services to</param>
-        /// <param name="configureOptions">An action to configure the MeetingNotesOptions</param>
-        /// <returns>The IServiceCollection so that additional calls can be chained</returns>
         public static IServiceCollection AddMeetingNotes(
             this IServiceCollection services,
             Action<MeetingNotesOptions> configureOptions)
@@ -34,7 +32,7 @@ namespace Aspose.MeetingNotes.DependencyInjection
             // Register services
             services.AddHttpClient();
             services.AddSingleton<IAudioProcessor, AudioProcessor>();
-            services.AddSingleton<ISpeechRecognizer, WhisperSpeechRecognizer>();
+            services.AddScoped<ISpeechRecognizer, WhisperSpeechRecognizer>();
             services.AddSingleton<IContentAnalyzer, ContentAnalyzer>();
             services.AddSingleton<IActionItemExtractor, ActionItemExtractor>();
             services.AddSingleton<IContentExporter, ContentExporter>();
@@ -47,7 +45,7 @@ namespace Aspose.MeetingNotes.DependencyInjection
                 var httpClient = sp.GetRequiredService<HttpClient>();
                 var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
 
-                return options.AIModel switch
+                return options.AIModelType switch
                 {
                     AIModelType.ChatGPT => new ChatGPTModel(httpClient, options, loggerFactory.CreateLogger<ChatGPTModel>()),
                     AIModelType.Grok => new GrokModel(httpClient, options, loggerFactory.CreateLogger<GrokModel>()),
@@ -56,8 +54,11 @@ namespace Aspose.MeetingNotes.DependencyInjection
                 };
             });
 
-            // Register MeetingNotesClient
-            services.AddSingleton<MeetingNotesClient>();
+            // Add metrics collector
+            services.AddScoped<IMetricsCollector, MetricsCollector>();
+
+            // Add MeetingNotes client
+            services.AddScoped<MeetingNotesClient>();
 
             return services;
         }

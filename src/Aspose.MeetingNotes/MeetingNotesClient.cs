@@ -10,6 +10,7 @@ using Aspose.MeetingNotes.Models;
 using Aspose.MeetingNotes.Monitoring;
 using Aspose.MeetingNotes.Progress;
 using Aspose.MeetingNotes.Exceptions;
+using Aspose.MeetingNotes.Metrics;
 
 namespace Aspose.MeetingNotes
 {
@@ -25,7 +26,7 @@ namespace Aspose.MeetingNotes
         private readonly IContentExporter _contentExporter;
         private readonly MeetingNotesOptions _options;
         private readonly ILogger<MeetingNotesClient> _logger;
-        private readonly PerformanceMetrics _metrics;
+        private readonly IMetricsCollector _metrics;
 
         /// <summary>
         /// Initializes a new instance of the MeetingNotesClient class
@@ -46,7 +47,7 @@ namespace Aspose.MeetingNotes
             IContentExporter contentExporter,
             IOptions<MeetingNotesOptions> options,
             ILogger<MeetingNotesClient> logger,
-            PerformanceMetrics metrics)
+            IMetricsCollector metrics)
         {
             _audioProcessor = audioProcessor;
             _speechRecognizer = speechRecognizer;
@@ -67,8 +68,6 @@ namespace Aspose.MeetingNotes
             IProgress<ProcessingProgress>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            using var _ = _metrics.TrackOperation("ProcessMeeting");
-
             try
             {
                 _logger.LogInformation("Starting meeting processing");
@@ -86,37 +85,99 @@ namespace Aspose.MeetingNotes
                     ProgressPercentage = 0,
                     StatusMessage = "Processing audio file..."
                 });
-
-                var processedAudio = await _audioProcessor.ProcessAsync(audioStream, cancellationToken);
+                ProcessedAudio processedAudio;
+                try
+                {
+                    processedAudio = await _audioProcessor.ProcessAsync(audioStream, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Failed to process audio", ex);
+                }
 
                 // Transcribe audio
-                var transcription = await _speechRecognizer.TranscribeAsync(
-                    processedAudio,
-                    _options.Language,
-                    cancellationToken);
-
-                if (!transcription.Success)
+                progress?.Report(new ProcessingProgress 
+                { 
+                    Stage = ProcessingStage.Transcription,
+                    ProgressPercentage = 25,
+                    StatusMessage = "Converting speech to text..."
+                });
+                TranscriptionResult transcription;
+                try
                 {
-                    throw new Exception($"Transcription failed: {transcription.ErrorMessage}");
+                    transcription = await _speechRecognizer.TranscribeAsync(processedAudio, _options.Language, cancellationToken);
+                    if (!transcription.Success)
+                    {
+                        throw new Exception($"Transcription failed: {transcription.ErrorMessage}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Transcription failed", ex);
+                }
+                finally
+                {
+                    processedAudio.Dispose();
                 }
 
                 // Analyze content
-                var analyzedContent = await _contentAnalyzer.AnalyzeAsync(transcription, cancellationToken);
+                progress?.Report(new ProcessingProgress 
+                { 
+                    Stage = ProcessingStage.ContentAnalysis,
+                    ProgressPercentage = 50,
+                    StatusMessage = "Analyzing content..."
+                });
+                AnalyzedContent analyzedContent;
+                try
+                {
+                    analyzedContent = await _contentAnalyzer.AnalyzeAsync(transcription, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Content analysis failed", ex);
+                }
 
                 // Extract action items
-                var actionItems = await _actionItemExtractor.ExtractActionItemsAsync(analyzedContent, cancellationToken);
+                progress?.Report(new ProcessingProgress 
+                { 
+                    Stage = ProcessingStage.ActionItems,
+                    ProgressPercentage = 75,
+                    StatusMessage = "Extracting action items..."
+                });
+                List<ActionItem> actionItems;
+                try
+                {
+                    actionItems = await _actionItemExtractor.ExtractActionItemsAsync(analyzedContent, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Action item extraction failed", ex);
+                }
+
+                progress?.Report(new ProcessingProgress 
+                { 
+                    Stage = ProcessingStage.Complete,
+                    ProgressPercentage = 100,
+                    StatusMessage = "Processing completed successfully"
+                });
 
                 return new MeetingAnalysisResult
                 {
                     Content = analyzedContent,
                     ActionItems = actionItems,
-                    Transcription = transcription
+                    Language = transcription.Language,
+                    TranscribedText = transcription.FullText,
+                    Success = true
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing meeting");
-                throw new MeetingNotesException("Failed to process meeting", ex);
+                return new MeetingAnalysisResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
             }
         }
 
@@ -124,7 +185,8 @@ namespace Aspose.MeetingNotes
         /// Export meeting notes to the specified format
         /// </summary>
         public async Task<ExportResult> ExportAsync(
-            MeetingAnalysisResult analysis,
+            AnalyzedContent content,
+            List<ActionItem> actionItems,
             ExportFormat format,
             CancellationToken cancellationToken = default)
         {
@@ -132,27 +194,11 @@ namespace Aspose.MeetingNotes
             {
                 _logger.LogInformation($"Exporting meeting notes to {format}");
 
-                var result = new ExportResult { Format = format };
-
-                switch (format)
-                {
-                    case ExportFormat.OneNote:
-                        result.Data = await _contentExporter.ExportToOneNoteAsync(analysis.Content, cancellationToken);
-                        break;
-                    case ExportFormat.Markdown:
-                        result.Text = await _contentExporter.ExportToMarkdownAsync(analysis.Content, cancellationToken);
-                        break;
-                    case ExportFormat.PDF:
-                        result.Data = await _contentExporter.ExportToPdfAsync(analysis.Content, cancellationToken);
-                        break;
-                    case ExportFormat.HTML:
-                        result.Text = await _contentExporter.ExportToHtmlAsync(analysis.Content, cancellationToken);
-                        break;
-                    default:
-                        throw new ArgumentException($"Unsupported export format: {format}");
-                }
-
-                return result;
+                return await _contentExporter.ExportAsync(
+                    content,
+                    actionItems,
+                    format,
+                    cancellationToken);
             }
             catch (Exception ex)
             {

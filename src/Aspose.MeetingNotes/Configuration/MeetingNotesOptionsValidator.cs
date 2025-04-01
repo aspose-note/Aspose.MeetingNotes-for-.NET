@@ -16,7 +16,7 @@ namespace Aspose.MeetingNotes.Configuration
                 errors.Add("Language must be specified");
             }
 
-            if (string.IsNullOrEmpty(options.AIApiKey))
+            if (string.IsNullOrEmpty(options.AIModelApiKey))
             {
                 errors.Add("AI API key must be specified");
             }

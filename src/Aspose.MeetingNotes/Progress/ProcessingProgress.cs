@@ -1,54 +1,64 @@
 namespace Aspose.MeetingNotes.Progress
 {
     /// <summary>
-    /// Represents progress information for long-running operations in the MeetingNotes SDK
+    /// Represents the current progress of a processing operation
     /// </summary>
     public class ProcessingProgress
     {
         /// <summary>
-        /// Current processing stage of the operation
+        /// The current stage of processing
         /// </summary>
         public ProcessingStage Stage { get; set; }
 
         /// <summary>
-        /// Progress percentage of the current stage (0-100)
+        /// The progress percentage (0-100)
         /// </summary>
         public int ProgressPercentage { get; set; }
 
         /// <summary>
-        /// Detailed status message describing the current operation
+        /// A descriptive message about the current stage
         /// </summary>
-        public string? StatusMessage { get; set; }
+        public string StatusMessage { get; set; } = string.Empty;
     }
 
     /// <summary>
-    /// Represents different stages of the meeting notes processing pipeline
+    /// Represents the different stages of processing a meeting recording
     /// </summary>
     public enum ProcessingStage
     {
         /// <summary>
-        /// Initial audio processing stage
+        /// Initial stage
+        /// </summary>
+        Initial,
+
+        /// <summary>
+        /// Processing the audio file
         /// </summary>
         AudioProcessing,
 
         /// <summary>
-        /// Speech-to-text transcription stage
+        /// Converting speech to text
         /// </summary>
         Transcription,
 
         /// <summary>
-        /// Content analysis and structuring stage
+        /// Analyzing the content
         /// </summary>
         ContentAnalysis,
 
         /// <summary>
-        /// Action item extraction stage
+        /// Extracting action items
         /// </summary>
-        ActionItemExtraction,
+        ActionItems,
 
         /// <summary>
-        /// Final export stage
+        /// Exporting the results
         /// </summary>
-        Export
+        Export,
+
+        /// <summary>
+        /// Processing completed
+        /// </summary>
+        Complete
     }
 } 

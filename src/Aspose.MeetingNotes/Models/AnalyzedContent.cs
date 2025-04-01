@@ -24,6 +24,11 @@ namespace Aspose.MeetingNotes.Models
         /// Questions and answers identified in the meeting
         /// </summary>
         public List<QASegment> QASegments { get; set; } = new();
+
+        /// <summary>
+        /// The complete transcribed text without any analysis or structuring
+        /// </summary>
+        public string TranscribedText { get; set; } = string.Empty;
     }
 
     /// <summary>

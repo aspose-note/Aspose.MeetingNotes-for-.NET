@@ -30,7 +30,8 @@ namespace Aspose.MeetingNotes.ContentAnalysis
                 Summary = aiResult.Summary,
                 Sections = new List<ContentSection>(),
                 KeyPoints = aiResult.KeyPoints,
-                QASegments = ExtractQASegments(transcription.Segments)
+                QASegments = ExtractQASegments(transcription.Segments),
+                TranscribedText = fullText
             };
 
             return content;

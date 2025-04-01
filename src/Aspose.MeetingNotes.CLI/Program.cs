@@ -85,8 +85,8 @@ namespace Aspose.MeetingNotes.CLI
                 services.AddMeetingNotes(opt =>
                 {
                     opt.Language = language;
-                    opt.AIModel = options.AIModel;
-                    opt.AIApiKey = options.AIApiKey;
+                    opt.AIModelType = options.AIModelType;
+                    opt.AIModelApiKey = options.AIModelApiKey;
                     opt.WhisperModelSize = options.WhisperModelSize;
                 });
 
@@ -101,14 +101,17 @@ namespace Aspose.MeetingNotes.CLI
 
                 // Process the file
                 using var audioStream = file.OpenRead();
-                var result = await client.ProcessMeetingAsync(
+                var analysisResult = await client.ProcessMeetingAsync(
                     audioStream,
                     file.Extension,
                     progress);
 
                 // Export the result
                 var exportFormat = ParseExportFormat(output);
-                var exportResult = await client.ExportAsync(result, exportFormat);
+                var exportResult = await client.ExportAsync(
+                    analysisResult.Content,
+                    analysisResult.ActionItems,
+                    exportFormat);
 
                 // Save the output
                 var outputPath = Path.ChangeExtension(file.FullName, GetFileExtension(exportFormat));
@@ -150,8 +153,8 @@ namespace Aspose.MeetingNotes.CLI
             {
                 return new MeetingNotesOptions
                 {
-                    AIModel = AIModelType.ChatGPT,
-                    AIApiKey = Environment.GetEnvironmentVariable("MEETINGNOTES_API_KEY") ?? "",
+                    AIModelType = AIModelType.ChatGPT,
+                    AIModelApiKey = Environment.GetEnvironmentVariable("MEETINGNOTES_API_KEY") ?? "",
                     WhisperModelSize = "base"
                 };
             }

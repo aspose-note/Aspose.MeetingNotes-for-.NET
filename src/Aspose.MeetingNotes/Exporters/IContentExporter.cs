@@ -3,28 +3,45 @@ using Aspose.MeetingNotes.Models;
 namespace Aspose.MeetingNotes.Exporters
 {
     /// <summary>
-    /// Interface for exporting meeting content to various formats
+    /// Interface for exporting content to various formats
     /// </summary>
     public interface IContentExporter
     {
         /// <summary>
-        /// Export content to OneNote format
+        /// Exports content to the specified format
         /// </summary>
-        Task<byte[]> ExportToOneNoteAsync(AnalyzedContent content, CancellationToken cancellationToken = default);
-        
+        Task<ExportResult> ExportAsync(
+            AnalyzedContent content,
+            List<ActionItem> actionItems,
+            ExportFormat format,
+            CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Export content to Markdown format
+        /// Exports content to OneNote format
         /// </summary>
-        Task<string> ExportToMarkdownAsync(AnalyzedContent content, CancellationToken cancellationToken = default);
-        
+        Task<byte[]> ExportToOneNoteAsync(
+            AnalyzedContent content,
+            CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Export content to PDF format
+        /// Exports content to Markdown format
         /// </summary>
-        Task<byte[]> ExportToPdfAsync(AnalyzedContent content, CancellationToken cancellationToken = default);
-        
+        Task<string> ExportToMarkdownAsync(
+            AnalyzedContent content,
+            CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Export content to HTML format
+        /// Exports content to PDF format
         /// </summary>
-        Task<string> ExportToHtmlAsync(AnalyzedContent content, CancellationToken cancellationToken = default);
+        Task<byte[]> ExportToPdfAsync(
+            AnalyzedContent content,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Exports content to HTML format
+        /// </summary>
+        Task<string> ExportToHtmlAsync(
+            AnalyzedContent content,
+            CancellationToken cancellationToken = default);
     }
 } 

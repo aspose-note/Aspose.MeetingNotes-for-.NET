@@ -28,7 +28,7 @@ namespace Aspose.MeetingNotes.AIIntegration
             
             // Configure DeepSeek API endpoint
             _httpClient.BaseAddress = new Uri("https://api.deepseek.ai/");
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_options.AIApiKey}");
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_options.AIModelApiKey}");
         }
 
         public async Task<AIAnalysisResult> AnalyzeContentAsync(string text, CancellationToken cancellationToken = default)
