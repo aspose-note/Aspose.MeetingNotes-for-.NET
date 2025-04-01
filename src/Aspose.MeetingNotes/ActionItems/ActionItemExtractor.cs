@@ -31,7 +31,6 @@ namespace Aspose.MeetingNotes.ActionItems
         /// <returns>A list of extracted action items</returns>
         public async Task<List<ActionItem>> ExtractActionItemsAsync(AnalyzedContent content, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Extracting action items from content");
             logger.LogInformation("Extracting action items from content");
 
             var actionItems = await aiModel.ExtractActionItemsAsync(
