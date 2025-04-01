@@ -1,0 +1,42 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D8F714C5-8F42-4E91-B920-6875530F1408}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspose.MeetingNotes", "src\Aspose.MeetingNotes\Aspose.MeetingNotes.csproj", "{9A19103F-16F7-4668-BE54-9A1E7A4F7556}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E8F714C5-8F42-4E91-B920-6875530F1409}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspose.MeetingNotes.Tests", "tests\Aspose.MeetingNotes.Tests\Aspose.MeetingNotes.Tests.csproj", "{9B19103F-16F7-4668-BE54-9A1E7A4F7557}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aspose.MeetingNotes.CLI", "src\Aspose.MeetingNotes.CLI\Aspose.MeetingNotes.CLI.csproj", "{B2F25DC0-022A-445D-8888-B8D3A2E99E06}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7556}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7556}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7556}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7556}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B19103F-16F7-4668-BE54-9A1E7A4F7557}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B19103F-16F7-4668-BE54-9A1E7A4F7557}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B19103F-16F7-4668-BE54-9A1E7A4F7557}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B19103F-16F7-4668-BE54-9A1E7A4F7557}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2F25DC0-022A-445D-8888-B8D3A2E99E06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2F25DC0-022A-445D-8888-B8D3A2E99E06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2F25DC0-022A-445D-8888-B8D3A2E99E06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2F25DC0-022A-445D-8888-B8D3A2E99E06}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9A19103F-16F7-4668-BE54-9A1E7A4F7556} = {D8F714C5-8F42-4E91-B920-6875530F1408}
+		{9B19103F-16F7-4668-BE54-9A1E7A4F7557} = {E8F714C5-8F42-4E91-B920-6875530F1409}
+		{B2F25DC0-022A-445D-8888-B8D3A2E99E06} = {D8F714C5-8F42-4E91-B920-6875530F1408}
+	EndGlobalSection
+EndGlobal
