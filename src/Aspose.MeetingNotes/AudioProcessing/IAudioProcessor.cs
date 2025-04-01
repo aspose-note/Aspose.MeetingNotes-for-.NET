@@ -1,4 +1,4 @@
-using Aspose.MeetingNotes.Models;
+﻿using Aspose.MeetingNotes.Models;
 
 namespace Aspose.MeetingNotes.AudioProcessing
 {
@@ -22,4 +22,4 @@ namespace Aspose.MeetingNotes.AudioProcessing
         /// <returns>True if the format is supported</returns>
         bool IsFormatSupported(string fileExtension);
     }
-} 
+}

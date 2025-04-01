@@ -1,61 +1,75 @@
-using System;
-using System.Diagnostics;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-
 namespace Aspose.MeetingNotes.Monitoring
 {
-    /// <summary>
-    /// Tracks performance metrics for operations
-    /// </summary>
-    public class PerformanceMetrics
-    {
-        private readonly ILogger<PerformanceMetrics> _logger;
-        private readonly Dictionary<string, Stopwatch> _activeOperations;
+    using System.Collections.Concurrent;
+    using System.Diagnostics;
+    using Microsoft.Extensions.Logging;
 
+    /// <summary>
+    /// Collects and monitors performance metrics for the MeetingNotes library.
+    /// </summary>
+    public class PerformanceMetrics : IPerformanceMetrics
+    {
+        private readonly ILogger<PerformanceMetrics> logger;
+        private readonly ConcurrentDictionary<string, Stopwatch> activeTimings = new ();
+        private readonly ConcurrentDictionary<string, List<double>> completedTimings = new ();
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PerformanceMetrics"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance for logging performance metrics.</param>
         public PerformanceMetrics(ILogger<PerformanceMetrics> logger)
         {
-            _logger = logger;
-            _activeOperations = new Dictionary<string, Stopwatch>();
+            this.logger = logger;
         }
 
         /// <summary>
-        /// Start tracking an operation
+        /// Starts timing a performance metric.
         /// </summary>
-        public IDisposable TrackOperation(string operationName)
+        /// <param name="name">The name of the performance metric.</param>
+        public void StartTiming(string name)
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-            _activeOperations[operationName] = stopwatch;
-
-            return new OperationTracker(this, operationName, stopwatch);
+            activeTimings.TryAdd(name, stopwatch);
+            logger.LogDebug("Started timing {Name}", name);
         }
 
-        private void EndOperation(string operationName, Stopwatch stopwatch)
+        /// <summary>
+        /// Stops timing a performance metric and records the duration.
+        /// </summary>
+        /// <param name="name">The name of the performance metric.</param>
+        public void StopTiming(string name)
         {
-            stopwatch.Stop();
-            _activeOperations.Remove(operationName);
-            _logger.LogInformation("Operation {OperationName} completed in {ElapsedMilliseconds}ms", 
-                operationName, stopwatch.ElapsedMilliseconds);
-        }
-
-        private class OperationTracker : IDisposable
-        {
-            private readonly PerformanceMetrics _metrics;
-            private readonly string _operationName;
-            private readonly Stopwatch _stopwatch;
-
-            public OperationTracker(PerformanceMetrics metrics, string operationName, Stopwatch stopwatch)
+            if (activeTimings.TryRemove(name, out var stopwatch))
             {
-                _metrics = metrics;
-                _operationName = operationName;
-                _stopwatch = stopwatch;
+                stopwatch.Stop();
+                var duration = stopwatch.ElapsedMilliseconds;
+                var timingsList = completedTimings.GetOrAdd(name, _ => new List<double>());
+                lock (timingsList)
+                {
+                    timingsList.Add(duration);
+                }
+
+                logger.LogDebug("Stopped timing {Name}: {Duration}ms", name, duration);
+            }
+        }
+
+        /// <summary>
+        /// Gets the average duration for a performance metric.
+        /// </summary>
+        /// <param name="name">The name of the performance metric.</param>
+        /// <returns>The average duration in milliseconds, or 0 if no measurements recorded.</returns>
+        public double GetAverageDuration(string name)
+        {
+            if (!completedTimings.TryGetValue(name, out var timingsList))
+            {
+                return 0;
             }
 
-            public void Dispose()
+            lock (timingsList)
             {
-                _metrics.EndOperation(_operationName, _stopwatch);
+                return timingsList.Count > 0 ? timingsList.Average() : 0;
             }
         }
     }
-} 
+}

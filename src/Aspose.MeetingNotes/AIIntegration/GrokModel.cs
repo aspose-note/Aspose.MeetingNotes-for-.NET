@@ -1,13 +1,7 @@
-using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Aspose.MeetingNotes.Models;
-using Aspose.MeetingNotes.Configuration;
+﻿using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.Exceptions;
+using Aspose.MeetingNotes.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Aspose.MeetingNotes.AIIntegration
 {
@@ -16,25 +10,25 @@ namespace Aspose.MeetingNotes.AIIntegration
     /// </summary>
     public class GrokModel : IAIModel
     {
-        private readonly HttpClient _httpClient;
-        private readonly MeetingNotesOptions _options;
-        private readonly ILogger<GrokModel> _logger;
+        private readonly HttpClient httpClient;
+        private readonly MeetingNotesOptions options;
+        private readonly ILogger<GrokModel> logger;
 
         /// <summary>
-        /// Initializes a new instance of the GrokModel class
+        /// Initializes a new instance of the <see cref="GrokModel"/> class.
         /// </summary>
-        /// <param name="httpClient">HTTP client for making API requests</param>
-        /// <param name="options">Configuration options for the AI model</param>
-        /// <param name="logger">Logger instance for logging operations</param>
+        /// <param name="httpClient">HTTP client for making API requests.</param>
+        /// <param name="options">Configuration options for the AI model.</param>
+        /// <param name="logger">Logger instance for logging operations.</param>
         public GrokModel(HttpClient httpClient, MeetingNotesOptions options, ILogger<GrokModel> logger)
         {
-            _httpClient = httpClient;
-            _options = options;
-            _logger = logger;
-            
+            this.httpClient = httpClient;
+            this.options = options;
+            this.logger = logger;
+
             // Configure Grok API endpoint
-            _httpClient.BaseAddress = new Uri("https://api.grok.ai/");
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_options.AIModelApiKey}");
+            this.httpClient.BaseAddress = new Uri("https://api.grok.ai/");
+            this.httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {this.options.AIModelApiKey}");
         }
 
         /// <summary>
@@ -48,7 +42,7 @@ namespace Aspose.MeetingNotes.AIIntegration
         {
             try
             {
-                _logger.LogInformation("Starting Grok content analysis");
+                logger.LogInformation("Starting Grok content analysis");
 
                 // Here would be the actual Grok API call for content analysis
                 // This is a placeholder implementation
@@ -77,7 +71,7 @@ namespace Aspose.MeetingNotes.AIIntegration
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during Grok content analysis");
+                logger.LogError(ex, "Error during Grok content analysis");
                 throw new AIModelException("Failed to analyze content with Grok", ex);
             }
         }
@@ -93,7 +87,7 @@ namespace Aspose.MeetingNotes.AIIntegration
         {
             try
             {
-                _logger.LogInformation("Extracting action items using Grok");
+                logger.LogInformation("Extracting action items using Grok");
 
                 // Here would be the actual Grok API call for action item extraction
                 // This is a placeholder implementation
@@ -110,9 +104,9 @@ namespace Aspose.MeetingNotes.AIIntegration
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during Grok action item extraction");
+                logger.LogError(ex, "Error during Grok action item extraction");
                 throw new AIModelException("Failed to extract action items with Grok", ex);
             }
         }
     }
-} 
+}

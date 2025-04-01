@@ -1,5 +1,3 @@
-using System;
-
 namespace Aspose.MeetingNotes.Models
 {
     /// <summary>
@@ -47,4 +45,4 @@ namespace Aspose.MeetingNotes.Models
         /// </summary>
         Monday
     }
-} 
+}

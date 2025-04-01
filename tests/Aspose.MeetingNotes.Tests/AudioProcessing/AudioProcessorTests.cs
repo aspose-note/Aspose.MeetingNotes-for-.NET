@@ -45,7 +45,7 @@ namespace Aspose.MeetingNotes.Tests.AudioProcessing
 
             // Assert
             Assert.NotNull(result);
-            Assert.NotEmpty(result.AudioData);
+            Assert.NotNull(result.AudioStream);
         }
     }
 } 

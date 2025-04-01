@@ -1,44 +1,42 @@
+﻿using Aspose.MeetingNotes.ActionItems;
+using Aspose.MeetingNotes.AudioProcessing;
+using Aspose.MeetingNotes.Configuration;
+using Aspose.MeetingNotes.ContentAnalysis;
+using Aspose.MeetingNotes.Exporters;
+using Aspose.MeetingNotes.Metrics;
+using Aspose.MeetingNotes.Models;
+using Aspose.MeetingNotes.Progress;
+using Aspose.MeetingNotes.SpeechRecognition;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Aspose.MeetingNotes.AudioProcessing;
-using Aspose.MeetingNotes.SpeechRecognition;
-using Aspose.MeetingNotes.ContentAnalysis;
-using Aspose.MeetingNotes.ActionItems;
-using Aspose.MeetingNotes.Exporters;
-using Aspose.MeetingNotes.Configuration;
-using Aspose.MeetingNotes.Models;
-using Aspose.MeetingNotes.Monitoring;
-using Aspose.MeetingNotes.Progress;
-using Aspose.MeetingNotes.Exceptions;
-using Aspose.MeetingNotes.Metrics;
 
 namespace Aspose.MeetingNotes
 {
     /// <summary>
-    /// Main entry point for the MeetingNotes SDK that orchestrates the processing of meeting recordings
+    /// Main client class for processing meeting audio and generating structured notes.
     /// </summary>
     public class MeetingNotesClient
     {
-        private readonly IAudioProcessor _audioProcessor;
-        private readonly ISpeechRecognizer _speechRecognizer;
-        private readonly IContentAnalyzer _contentAnalyzer;
-        private readonly IActionItemExtractor _actionItemExtractor;
-        private readonly IContentExporter _contentExporter;
-        private readonly MeetingNotesOptions _options;
-        private readonly ILogger<MeetingNotesClient> _logger;
-        private readonly IMetricsCollector _metrics;
+        private readonly IAudioProcessor audioProcessor;
+        private readonly ISpeechRecognizer speechRecognizer;
+        private readonly IContentAnalyzer contentAnalyzer;
+        private readonly IActionItemExtractor actionItemExtractor;
+        private readonly IContentExporter contentExporter;
+        private readonly MeetingNotesOptions options;
+        private readonly ILogger<MeetingNotesClient> logger;
+        private readonly IMetricsCollector metrics;
 
         /// <summary>
-        /// Initializes a new instance of the MeetingNotesClient class
+        /// Initializes a new instance of the <see cref="MeetingNotesClient"/> class.
         /// </summary>
-        /// <param name="audioProcessor">Service for processing audio input</param>
-        /// <param name="speechRecognizer">Service for converting speech to text</param>
-        /// <param name="contentAnalyzer">Service for analyzing and structuring content</param>
-        /// <param name="actionItemExtractor">Service for extracting action items</param>
-        /// <param name="contentExporter">Service for exporting content to various formats</param>
-        /// <param name="options">Configuration options for the client</param>
-        /// <param name="logger">Logger instance for logging operations</param>
-        /// <param name="metrics">Service for tracking performance metrics</param>
+        /// <param name="audioProcessor">Service for processing audio input.</param>
+        /// <param name="speechRecognizer">Service for converting speech to text.</param>
+        /// <param name="contentAnalyzer">Service for analyzing and structuring content.</param>
+        /// <param name="actionItemExtractor">Service for extracting action items.</param>
+        /// <param name="contentExporter">Service for exporting content to various formats.</param>
+        /// <param name="options">Configuration options for the client.</param>
+        /// <param name="logger">Logger instance for logging operations.</param>
+        /// <param name="metrics">Service for tracking performance metrics.</param>
         public MeetingNotesClient(
             IAudioProcessor audioProcessor,
             ISpeechRecognizer speechRecognizer,
@@ -49,38 +47,50 @@ namespace Aspose.MeetingNotes
             ILogger<MeetingNotesClient> logger,
             IMetricsCollector metrics)
         {
-            _audioProcessor = audioProcessor;
-            _speechRecognizer = speechRecognizer;
-            _contentAnalyzer = contentAnalyzer;
-            _actionItemExtractor = actionItemExtractor;
-            _contentExporter = contentExporter;
-            _options = options.Value;
-            _logger = logger;
-            _metrics = metrics;
+            this.audioProcessor = audioProcessor;
+            this.speechRecognizer = speechRecognizer;
+            this.contentAnalyzer = contentAnalyzer;
+            this.actionItemExtractor = actionItemExtractor;
+            this.contentExporter = contentExporter;
+            this.options = options.Value;
+            this.logger = logger;
+            this.metrics = metrics;
         }
 
         /// <summary>
         /// Process meeting audio file and generate structured notes
         /// </summary>
+        /// <param name="audioStream">The audio stream to process.</param>
+        /// <param name="fileExtension">The file extension of the audio file.</param>
+        /// <param name="progress">Optional progress reporter for processing updates.</param>
+        /// <param name="cancellationToken">Optional cancellation token for the operation.</param>
+        /// <returns>A <see cref="MeetingAnalysisResult"/> containing the processed meeting notes.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when audioStream is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the audio format is unsupported.</exception>
         public async Task<MeetingAnalysisResult> ProcessMeetingAsync(
             Stream audioStream,
             string fileExtension,
             IProgress<ProcessingProgress>? progress = null,
             CancellationToken cancellationToken = default)
         {
+            if (audioStream == null)
+            {
+                throw new ArgumentNullException(nameof(audioStream));
+            }
+
             try
             {
-                _logger.LogInformation("Starting meeting processing");
+                logger.LogInformation("Starting meeting processing");
 
                 // Validate audio format
-                if (!_audioProcessor.IsFormatSupported(fileExtension))
+                if (!audioProcessor.IsFormatSupported(fileExtension))
                 {
                     throw new ArgumentException($"Unsupported audio format: {fileExtension}");
                 }
 
                 // Process audio
-                progress?.Report(new ProcessingProgress 
-                { 
+                progress?.Report(new ProcessingProgress
+                {
                     Stage = ProcessingStage.AudioProcessing,
                     ProgressPercentage = 0,
                     StatusMessage = "Processing audio file..."
@@ -88,7 +98,7 @@ namespace Aspose.MeetingNotes
                 ProcessedAudio processedAudio;
                 try
                 {
-                    processedAudio = await _audioProcessor.ProcessAsync(audioStream, cancellationToken);
+                    processedAudio = await audioProcessor.ProcessAsync(audioStream, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -96,8 +106,8 @@ namespace Aspose.MeetingNotes
                 }
 
                 // Transcribe audio
-                progress?.Report(new ProcessingProgress 
-                { 
+                progress?.Report(new ProcessingProgress
+                {
                     Stage = ProcessingStage.Transcription,
                     ProgressPercentage = 25,
                     StatusMessage = "Converting speech to text..."
@@ -105,7 +115,7 @@ namespace Aspose.MeetingNotes
                 TranscriptionResult transcription;
                 try
                 {
-                    transcription = await _speechRecognizer.TranscribeAsync(processedAudio, _options.Language, cancellationToken);
+                    transcription = await speechRecognizer.TranscribeAsync(processedAudio, options.Language, cancellationToken);
                     if (!transcription.Success)
                     {
                         throw new Exception($"Transcription failed: {transcription.ErrorMessage}");
@@ -121,8 +131,8 @@ namespace Aspose.MeetingNotes
                 }
 
                 // Analyze content
-                progress?.Report(new ProcessingProgress 
-                { 
+                progress?.Report(new ProcessingProgress
+                {
                     Stage = ProcessingStage.ContentAnalysis,
                     ProgressPercentage = 50,
                     StatusMessage = "Analyzing content..."
@@ -130,7 +140,7 @@ namespace Aspose.MeetingNotes
                 AnalyzedContent analyzedContent;
                 try
                 {
-                    analyzedContent = await _contentAnalyzer.AnalyzeAsync(transcription, cancellationToken);
+                    analyzedContent = await contentAnalyzer.AnalyzeAsync(transcription, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -138,8 +148,8 @@ namespace Aspose.MeetingNotes
                 }
 
                 // Extract action items
-                progress?.Report(new ProcessingProgress 
-                { 
+                progress?.Report(new ProcessingProgress
+                {
                     Stage = ProcessingStage.ActionItems,
                     ProgressPercentage = 75,
                     StatusMessage = "Extracting action items..."
@@ -147,15 +157,15 @@ namespace Aspose.MeetingNotes
                 List<ActionItem> actionItems;
                 try
                 {
-                    actionItems = await _actionItemExtractor.ExtractActionItemsAsync(analyzedContent, cancellationToken);
+                    actionItems = await actionItemExtractor.ExtractActionItemsAsync(analyzedContent, cancellationToken);
                 }
                 catch (Exception ex)
                 {
                     throw new Exception("Action item extraction failed", ex);
                 }
 
-                progress?.Report(new ProcessingProgress 
-                { 
+                progress?.Report(new ProcessingProgress
+                {
                     Stage = ProcessingStage.Complete,
                     ProgressPercentage = 100,
                     StatusMessage = "Processing completed successfully"
@@ -172,7 +182,7 @@ namespace Aspose.MeetingNotes
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing meeting");
+                logger.LogError(ex, "Error processing meeting");
                 return new MeetingAnalysisResult
                 {
                     Success = false,
@@ -184,17 +194,33 @@ namespace Aspose.MeetingNotes
         /// <summary>
         /// Export meeting notes to the specified format
         /// </summary>
+        /// <param name="content">The analyzed content to export.</param>
+        /// <param name="actionItems">The list of action items to include in the export.</param>
+        /// <param name="format">The format to export the meeting notes to.</param>
+        /// <param name="cancellationToken">Optional cancellation token for the operation.</param>
+        /// <returns>An <see cref="ExportResult"/> containing the result of the export operation.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when content or actionItems is null.</exception>
         public async Task<ExportResult> ExportAsync(
             AnalyzedContent content,
             List<ActionItem> actionItems,
             ExportFormat format,
             CancellationToken cancellationToken = default)
         {
+            if (content == null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            if (actionItems == null)
+            {
+                throw new ArgumentNullException(nameof(actionItems));
+            }
+
             try
             {
-                _logger.LogInformation($"Exporting meeting notes to {format}");
+                logger.LogInformation($"Exporting meeting notes to {format}");
 
-                return await _contentExporter.ExportAsync(
+                return await contentExporter.ExportAsync(
                     content,
                     actionItems,
                     format,
@@ -202,9 +228,9 @@ namespace Aspose.MeetingNotes
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error exporting meeting notes");
+                logger.LogError(ex, "Error exporting meeting notes");
                 throw;
             }
         }
     }
-} 
+}

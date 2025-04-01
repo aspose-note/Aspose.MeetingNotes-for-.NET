@@ -1,5 +1,5 @@
+﻿using Aspose.MeetingNotes.Models;
 using Microsoft.Extensions.Logging;
-using Aspose.MeetingNotes.Models;
 
 namespace Aspose.MeetingNotes.AudioProcessing
 {
@@ -8,13 +8,17 @@ namespace Aspose.MeetingNotes.AudioProcessing
     /// </summary>
     public class AudioProcessor : IAudioProcessor
     {
-        private readonly ILogger<AudioProcessor> _logger;
-        private readonly HashSet<string> _supportedFormats = new(StringComparer.OrdinalIgnoreCase) 
+        private readonly ILogger<AudioProcessor> logger;
+        private readonly HashSet<string> supportedFormats = new (StringComparer.OrdinalIgnoreCase)
         { ".mp3", ".wav", ".m4a", ".ogg", ".flac" };
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AudioProcessor"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance for logging audio processing operations.</param>
         public AudioProcessor(ILogger<AudioProcessor> logger)
         {
-            _logger = logger;
+            this.logger = logger;
         }
 
         /// <inheritdoc/>
@@ -22,7 +26,7 @@ namespace Aspose.MeetingNotes.AudioProcessing
         {
             try
             {
-                _logger.LogInformation("Starting audio processing");
+                logger.LogInformation("Starting audio processing");
 
                 // Create a new memory stream and copy the input
                 var memoryStream = new MemoryStream();
@@ -40,7 +44,7 @@ namespace Aspose.MeetingNotes.AudioProcessing
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing audio");
+                logger.LogError(ex, "Error processing audio");
                 throw;
             }
         }
@@ -48,7 +52,7 @@ namespace Aspose.MeetingNotes.AudioProcessing
         /// <inheritdoc/>
         public bool IsFormatSupported(string fileExtension)
         {
-            return _supportedFormats.Contains(fileExtension);
+            return supportedFormats.Contains(fileExtension);
         }
     }
-} 
+}

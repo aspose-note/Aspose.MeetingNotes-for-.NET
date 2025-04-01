@@ -1,34 +1,37 @@
+using Aspose.MeetingNotes.ActionItems;
+using Aspose.MeetingNotes.AIIntegration;
+using Aspose.MeetingNotes.AudioProcessing;
+using Aspose.MeetingNotes.Configuration;
+using Aspose.MeetingNotes.ContentAnalysis;
+using Aspose.MeetingNotes.Exporters;
+using Aspose.MeetingNotes.Metrics;
+using Aspose.MeetingNotes.Monitoring;
+using Aspose.MeetingNotes.SpeechRecognition;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Aspose.MeetingNotes.AudioProcessing;
-using Aspose.MeetingNotes.SpeechRecognition;
-using Aspose.MeetingNotes.AIIntegration;
-using Aspose.MeetingNotes.ContentAnalysis;
-using Aspose.MeetingNotes.ActionItems;
-using Aspose.MeetingNotes.Exporters;
-using Aspose.MeetingNotes.Configuration;
-using Aspose.MeetingNotes.Monitoring;
-using Aspose.MeetingNotes.Metrics;
 
 namespace Aspose.MeetingNotes.DependencyInjection
 {
     /// <summary>
-    /// Extension methods for setting up MeetingNotes services in an IServiceCollection
+    /// Extension methods for configuring MeetingNotes services.
     /// </summary>
     public static class ServiceCollectionExtensions
     {
         /// <summary>
-        /// Adds MeetingNotes services to the specified IServiceCollection
+        /// Adds MeetingNotes services to the service collection.
         /// </summary>
+        /// <param name="services">The service collection to add services to.</param>
+        /// <param name="configure">An action to configure the MeetingNotes options.</param>
+        /// <returns>The service collection for method chaining.</returns>
         public static IServiceCollection AddMeetingNotes(
             this IServiceCollection services,
-            Action<MeetingNotesOptions> configureOptions)
+            Action<MeetingNotesOptions> configure)
         {
             // Add options
-            services.Configure(configureOptions);
+            services.Configure(configure);
             services.AddOptions<MeetingNotesOptions>();
-            
+
             // Register services
             services.AddHttpClient();
             services.AddSingleton<IAudioProcessor, AudioProcessor>();
@@ -50,7 +53,7 @@ namespace Aspose.MeetingNotes.DependencyInjection
                     AIModelType.ChatGPT => new ChatGPTModel(httpClient, options, loggerFactory.CreateLogger<ChatGPTModel>()),
                     AIModelType.Grok => new GrokModel(httpClient, options, loggerFactory.CreateLogger<GrokModel>()),
                     AIModelType.DeepSeek => new DeepSeekModel(httpClient, options, loggerFactory.CreateLogger<DeepSeekModel>()),
-                    _ => throw new ArgumentException($"Unsupported AI model: {options.AIModel}")
+                    _ => throw new ArgumentException($"Unsupported AI model: {options.AIModelType.ToString()}")
                 };
             });
 
@@ -63,4 +66,4 @@ namespace Aspose.MeetingNotes.DependencyInjection
             return services;
         }
     }
-} 
+}

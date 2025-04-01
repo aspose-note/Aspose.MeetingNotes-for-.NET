@@ -19,4 +19,4 @@ namespace Aspose.MeetingNotes.Metrics
         /// <param name="milliseconds">The duration in milliseconds</param>
         void RecordTiming(string name, double milliseconds);
     }
-} 
+}

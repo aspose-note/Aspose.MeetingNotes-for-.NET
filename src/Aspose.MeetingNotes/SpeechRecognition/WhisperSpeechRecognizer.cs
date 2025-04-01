@@ -1,11 +1,11 @@
+﻿using Aspose.MeetingNotes.Configuration;
+using Aspose.MeetingNotes.Exceptions;
+using Aspose.MeetingNotes.Metrics;
+using Aspose.MeetingNotes.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Aspose.MeetingNotes.Models;
-using Aspose.MeetingNotes.Configuration;
 using Whisper.net;
 using Whisper.net.Ggml;
-using Aspose.MeetingNotes.Metrics;
-using Aspose.MeetingNotes.Exceptions;
 
 namespace Aspose.MeetingNotes.SpeechRecognition
 {
@@ -14,16 +14,16 @@ namespace Aspose.MeetingNotes.SpeechRecognition
     /// </summary>
     public class WhisperSpeechRecognizer : ISpeechRecognizer, IDisposable
     {
-        private readonly ILogger<WhisperSpeechRecognizer> _logger;
-        private readonly MeetingNotesOptions _options;
-        private readonly IMetricsCollector _metrics;
-        private readonly string _modelPath;
-        private WhisperFactory? _whisperFactory;
-        private readonly SemaphoreSlim _lock = new(1, 1);
-        private bool _disposed;
+        private readonly ILogger<WhisperSpeechRecognizer> logger;
+        private readonly MeetingNotesOptions options;
+        private readonly IMetricsCollector metrics;
+        private readonly SemaphoreSlim lockObj = new (1, 1);
+        private readonly string modelPath;
+        private WhisperFactory? whisperFactory;
+        private bool disposed;
 
         /// <summary>
-        /// Initializes a new instance of the WhisperSpeechRecognizer class
+        /// Initializes a new instance of the <see cref="WhisperSpeechRecognizer"/> class
         /// </summary>
         /// <param name="logger">The logger instance for logging transcription events</param>
         /// <param name="options">The configuration options for the speech recognizer</param>
@@ -33,10 +33,19 @@ namespace Aspose.MeetingNotes.SpeechRecognition
             IOptions<MeetingNotesOptions> options,
             IMetricsCollector metrics)
         {
-            _logger = logger;
-            _options = options.Value;
-            _metrics = metrics;
-            _modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models", "ggml-base.bin");
+            this.logger = logger;
+            this.options = options.Value;
+            this.metrics = metrics;
+            this.modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models", "ggml-base.bin");
+        }
+
+        /// <summary>
+        /// Finalizes an instance of the <see cref="WhisperSpeechRecognizer"/> class.
+        /// Finalizer for WhisperSpeechRecognizer.
+        /// </summary>
+        ~WhisperSpeechRecognizer()
+        {
+            Dispose(false);
         }
 
         /// <summary>
@@ -53,30 +62,30 @@ namespace Aspose.MeetingNotes.SpeechRecognition
         {
             try
             {
-                _logger.LogInformation("Starting transcription with language: {Language}", language);
+                logger.LogInformation("Starting transcription with language: {Language}", language);
 
                 // Ensure model exists
-                if (!File.Exists(_modelPath))
+                if (!File.Exists(modelPath))
                 {
-                    _logger.LogWarning("Whisper model not found at {ModelPath}, downloading...", _modelPath);
+                    logger.LogWarning("Whisper model not found at {ModelPath}, downloading...", modelPath);
                     await DownloadModelAsync(cancellationToken);
                 }
 
                 // Initialize Whisper factory if needed
                 await InitializeWhisperFactoryAsync(cancellationToken);
 
-                if (_whisperFactory == null)
+                if (whisperFactory == null)
                 {
                     throw new TranscriptionException("Failed to initialize Whisper factory");
                 }
 
                 // Create processor with specified language
-                using var processor = _whisperFactory.CreateBuilder()
+                using var processor = whisperFactory.CreateBuilder()
                     .WithLanguage("auto")
                     .Build();
 
                 // Process audio
-                _logger.LogInformation("Processing audio stream...");
+                logger.LogInformation("Processing audio stream...");
                 var segments = new List<TranscriptionSegment>();
 
                 await foreach (var segment in processor.ProcessAsync(audio.AudioStream, cancellationToken))
@@ -91,8 +100,9 @@ namespace Aspose.MeetingNotes.SpeechRecognition
                 }
 
                 // Record metrics
-                _metrics.RecordMetric("transcription.segments", segments.Count);
-                _metrics.RecordTiming("transcription.duration", 
+                metrics.RecordMetric("transcription.segments", segments.Count);
+                metrics.RecordTiming(
+                    "transcription.duration",
                     (segments.LastOrDefault()?.EndTime ?? TimeSpan.Zero).TotalMilliseconds);
 
                 return new TranscriptionResult
@@ -105,7 +115,7 @@ namespace Aspose.MeetingNotes.SpeechRecognition
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during transcription");
+                logger.LogError(ex, "Error during transcription");
                 return new TranscriptionResult
                 {
                     Success = false,
@@ -116,19 +126,25 @@ namespace Aspose.MeetingNotes.SpeechRecognition
 
         private async Task InitializeWhisperFactoryAsync(CancellationToken cancellationToken)
         {
-            if (_whisperFactory != null) return;
+            if (whisperFactory != null)
+            {
+                return;
+            }
 
-            await _lock.WaitAsync(cancellationToken);
+            await lockObj.WaitAsync(cancellationToken);
             try
             {
-                if (_whisperFactory != null) return;
+                if (whisperFactory != null)
+                {
+                    return;
+                }
 
-                _logger.LogInformation("Initializing Whisper factory with model: {ModelPath}", _modelPath);
-                _whisperFactory = WhisperFactory.FromPath(_modelPath);
+                logger.LogInformation("Initializing Whisper factory with model: {ModelPath}", modelPath);
+                whisperFactory = WhisperFactory.FromPath(modelPath);
             }
             finally
             {
-                _lock.Release();
+                lockObj.Release();
             }
         }
 
@@ -136,10 +152,10 @@ namespace Aspose.MeetingNotes.SpeechRecognition
         {
             try
             {
-                _logger.LogInformation("Downloading Whisper model...");
+                logger.LogInformation("Downloading Whisper model...");
 
                 // Ensure models directory exists
-                var modelsDir = Path.GetDirectoryName(_modelPath);
+                var modelsDir = Path.GetDirectoryName(modelPath);
                 if (!Directory.Exists(modelsDir))
                 {
                     Directory.CreateDirectory(modelsDir!);
@@ -147,42 +163,47 @@ namespace Aspose.MeetingNotes.SpeechRecognition
 
                 // Download model using WhisperGgmlDownloader
                 using var modelStream = await WhisperGgmlDownloader.Default.GetGgmlModelAsync(GgmlType.Base, cancellationToken: cancellationToken);
-                
+
                 // Save model to file
-                using var fileStream = File.Create(_modelPath);
+                using var fileStream = File.Create(modelPath);
                 await modelStream.CopyToAsync(fileStream, cancellationToken);
 
-                _logger.LogInformation("Whisper model downloaded successfully");
+                logger.LogInformation("Whisper model downloaded successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error downloading Whisper model");
+                logger.LogError(ex, "Error downloading Whisper model");
                 throw new TranscriptionException("Failed to download Whisper model", ex);
             }
         }
 
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Releases the unmanaged resources used by the WhisperSpeechRecognizer and optionally releases the managed resources.
+        /// </summary>
+        /// <param name="disposing">True to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (_disposed) return;
+            if (disposed)
+            {
+                return;
+            }
 
             if (disposing)
             {
-                _whisperFactory?.Dispose();
-                _lock.Dispose();
+                whisperFactory?.Dispose();
+                lockObj.Dispose();
             }
 
-            _disposed = true;
-        }
-
-        ~WhisperSpeechRecognizer()
-        {
-            Dispose(false);
+            disposed = true;
         }
     }
-} 
+}

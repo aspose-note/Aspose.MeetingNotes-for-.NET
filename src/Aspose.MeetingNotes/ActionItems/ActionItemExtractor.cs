@@ -9,18 +9,18 @@ namespace Aspose.MeetingNotes.ActionItems
     /// </summary>
     public class ActionItemExtractor : IActionItemExtractor
     {
-        private readonly IAIModel _aiModel;
-        private readonly ILogger<ActionItemExtractor> _logger;
+        private readonly IAIModel aiModel;
+        private readonly ILogger<ActionItemExtractor> logger;
 
         /// <summary>
-        /// Initializes a new instance of the ActionItemExtractor class
+        /// Initializes a new instance of the <see cref="ActionItemExtractor"/> class.
         /// </summary>
         /// <param name="aiModel">AI model for analyzing content and extracting action items</param>
         /// <param name="logger">Logger instance for logging operations</param>
         public ActionItemExtractor(IAIModel aiModel, ILogger<ActionItemExtractor> logger)
         {
-            _aiModel = aiModel;
-            _logger = logger;
+            this.aiModel = aiModel;
+            this.logger = logger;
         }
 
         /// <summary>
@@ -32,8 +32,9 @@ namespace Aspose.MeetingNotes.ActionItems
         public async Task<List<ActionItem>> ExtractActionItemsAsync(AnalyzedContent content, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Extracting action items from content");
+            logger.LogInformation("Extracting action items from content");
 
-            var actionItems = await _aiModel.ExtractActionItemsAsync(
+            var actionItems = await aiModel.ExtractActionItemsAsync(
                 string.Join("\n", content.Sections.Select(s => s.Content)),
                 cancellationToken);
 
@@ -54,9 +55,10 @@ namespace Aspose.MeetingNotes.ActionItems
         /// <param name="trackerType">The type of task tracking system to export to</param>
         /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation</param>
         /// <exception cref="NotSupportedException">Thrown when the specified task tracker type is not supported</exception>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task ExportToTaskTrackerAsync(List<ActionItem> actionItems, TaskTrackerType trackerType, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation($"Exporting action items to {trackerType}");
+            logger.LogInformation($"Exporting action items to {trackerType}");
 
             switch (trackerType)
             {
@@ -113,4 +115,4 @@ namespace Aspose.MeetingNotes.ActionItems
             return Task.CompletedTask;
         }
     }
-} 
+}

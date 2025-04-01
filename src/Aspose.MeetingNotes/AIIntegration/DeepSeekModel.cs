@@ -1,41 +1,47 @@
-using System;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Aspose.MeetingNotes.Models;
 using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.Exceptions;
+using Aspose.MeetingNotes.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Aspose.MeetingNotes.AIIntegration
 {
     /// <summary>
-    /// DeepSeek implementation of AI model integration
+    /// DeepSeek implementation of AI model integration.
     /// </summary>
     public class DeepSeekModel : IAIModel
     {
-        private readonly HttpClient _httpClient;
-        private readonly MeetingNotesOptions _options;
-        private readonly ILogger<DeepSeekModel> _logger;
+        private readonly HttpClient httpClient;
+        private readonly MeetingNotesOptions options;
+        private readonly ILogger<DeepSeekModel> logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DeepSeekModel"/> class.
+        /// </summary>
+        /// <param name="httpClient">The HTTP client for making API requests.</param>
+        /// <param name="options">The meeting notes options containing configuration.</param>
+        /// <param name="logger">The logger instance for logging operations.</param>
         public DeepSeekModel(HttpClient httpClient, MeetingNotesOptions options, ILogger<DeepSeekModel> logger)
         {
-            _httpClient = httpClient;
-            _options = options;
-            _logger = logger;
-            
+            this.httpClient = httpClient;
+            this.options = options;
+            this.logger = logger;
+
             // Configure DeepSeek API endpoint
-            _httpClient.BaseAddress = new Uri("https://api.deepseek.ai/");
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_options.AIModelApiKey}");
+            httpClient.BaseAddress = new Uri("https://api.deepseek.ai/");
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {options.AIModelApiKey}");
         }
 
+        /// <summary>
+        /// Analyzes the provided text content using the DeepSeek API.
+        /// </summary>
+        /// <param name="text">The text content to analyze.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation. The task result contains the AI analysis result.</returns>
         public async Task<AIAnalysisResult> AnalyzeContentAsync(string text, CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogInformation("Starting DeepSeek content analysis");
+                logger.LogInformation("Starting DeepSeek content analysis");
 
                 // Here would be the actual DeepSeek API call for content analysis
                 // This is a placeholder implementation
@@ -64,16 +70,22 @@ namespace Aspose.MeetingNotes.AIIntegration
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during DeepSeek content analysis");
+                logger.LogError(ex, "Error during DeepSeek content analysis");
                 throw new AIModelException("Failed to analyze content with DeepSeek", ex);
             }
         }
 
+        /// <summary>
+        /// Extracts action items from the provided text using the DeepSeek API.
+        /// </summary>
+        /// <param name="text">The text content to extract action items from.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation. The task result contains the list of extracted action items.</returns>
         public async Task<List<ActionItem>> ExtractActionItemsAsync(string text, CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogInformation("Extracting action items using DeepSeek");
+                logger.LogInformation("Extracting action items using DeepSeek");
 
                 // Here would be the actual DeepSeek API call for action item extraction
                 // This is a placeholder implementation
@@ -90,9 +102,9 @@ namespace Aspose.MeetingNotes.AIIntegration
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during DeepSeek action item extraction");
+                logger.LogError(ex, "Error during DeepSeek action item extraction");
                 throw new AIModelException("Failed to extract action items with DeepSeek", ex);
             }
         }
     }
-} 
+}

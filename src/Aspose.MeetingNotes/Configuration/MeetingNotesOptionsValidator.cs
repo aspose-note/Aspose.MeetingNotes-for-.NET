@@ -7,6 +7,12 @@ namespace Aspose.MeetingNotes.Configuration
     /// </summary>
     public class MeetingNotesOptionsValidator : IValidateOptions<MeetingNotesOptions>
     {
+        /// <summary>
+        /// Validates the MeetingNotes configuration options.
+        /// </summary>
+        /// <param name="name">The name of the options instance being validated.</param>
+        /// <param name="options">The options instance to validate.</param>
+        /// <returns>The validation result.</returns>
         public ValidateOptionsResult Validate(string? name, MeetingNotesOptions options)
         {
             var errors = new List<string>();
@@ -37,4 +43,4 @@ namespace Aspose.MeetingNotes.Configuration
                 .Contains(size.ToLower());
         }
     }
-} 
+}

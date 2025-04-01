@@ -1,6 +1,6 @@
+using System.Text;
 using Aspose.MeetingNotes.Models;
 using Microsoft.Extensions.Logging;
-using System.Text;
 
 namespace Aspose.MeetingNotes.Exporters
 {
@@ -9,16 +9,25 @@ namespace Aspose.MeetingNotes.Exporters
     /// </summary>
     public class ContentExporter : IContentExporter
     {
-        private readonly ILogger<ContentExporter> _logger;
+        private readonly ILogger<ContentExporter> logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ContentExporter"/> class.
+        /// </summary>
+        /// <param name="logger">The logger instance for logging export operations.</param>
         public ContentExporter(ILogger<ContentExporter> logger)
         {
-            _logger = logger;
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
         /// Exports content to the specified format
         /// </summary>
+        /// <param name="content">The meeting content to export.</param>
+        /// <param name="actionItems">The list of action items.</param>
+        /// <param name="format">The format to export the content in.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task<ExportResult> ExportAsync(
             AnalyzedContent content,
             List<ActionItem> actionItems,
@@ -27,7 +36,7 @@ namespace Aspose.MeetingNotes.Exporters
         {
             try
             {
-                _logger.LogInformation($"Exporting content to {format} format");
+                logger.LogInformation($"Exporting content to {format} format");
 
                 var result = new ExportResult { Format = format };
 
@@ -53,7 +62,7 @@ namespace Aspose.MeetingNotes.Exporters
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error exporting content");
+                logger.LogError(ex, "Error exporting content");
                 throw;
             }
         }
@@ -61,6 +70,9 @@ namespace Aspose.MeetingNotes.Exporters
         /// <summary>
         /// Exports content to OneNote format
         /// </summary>
+        /// <param name="content">The meeting content to export.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task<byte[]> ExportToOneNoteAsync(
             AnalyzedContent content,
             CancellationToken cancellationToken = default)
@@ -72,6 +84,9 @@ namespace Aspose.MeetingNotes.Exporters
         /// <summary>
         /// Exports content to Markdown format
         /// </summary>
+        /// <param name="content">The meeting content to export.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task<string> ExportToMarkdownAsync(
             AnalyzedContent content,
             CancellationToken cancellationToken = default)
@@ -97,6 +112,7 @@ namespace Aspose.MeetingNotes.Exporters
                 {
                     sb.AppendLine($"- {point}");
                 }
+
                 sb.AppendLine();
             }
 
@@ -140,6 +156,9 @@ namespace Aspose.MeetingNotes.Exporters
         /// <summary>
         /// Exports content to PDF format
         /// </summary>
+        /// <param name="content">The meeting content to export.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task<byte[]> ExportToPdfAsync(
             AnalyzedContent content,
             CancellationToken cancellationToken = default)
@@ -151,6 +170,9 @@ namespace Aspose.MeetingNotes.Exporters
         /// <summary>
         /// Exports content to HTML format
         /// </summary>
+        /// <param name="content">The meeting content to export.</param>
+        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task<string> ExportToHtmlAsync(
             AnalyzedContent content,
             CancellationToken cancellationToken = default)
@@ -159,4 +181,4 @@ namespace Aspose.MeetingNotes.Exporters
             throw new NotImplementedException("HTML export is not yet implemented");
         }
     }
-} 
+}
