@@ -1,0 +1,35 @@
+name: .NET Build and Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    env:
+      Solution_Name: Aspose.MeetingNotes.sln
+      Test_Project_Path: tests/Aspose.MeetingNotes.Tests/Aspose.MeetingNotes.Tests.csproj
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 6.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.Solution_Name }}
+
+    - name: Build solution
+      run: dotnet build ${{ env.Solution_Name }} --configuration Release --no-restore
+
+    - name: Run tests
+      run: dotnet test ${{ env.Test_Project_Path }} --configuration Release --no-build --verbosity normal
+
