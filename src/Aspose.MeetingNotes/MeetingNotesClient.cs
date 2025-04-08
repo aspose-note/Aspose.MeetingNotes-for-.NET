@@ -3,7 +3,6 @@ using Aspose.MeetingNotes.AudioProcessing;
 using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.ContentAnalysis;
 using Aspose.MeetingNotes.Exporters;
-using Aspose.MeetingNotes.Metrics;
 using Aspose.MeetingNotes.Models;
 using Aspose.MeetingNotes.Progress;
 using Aspose.MeetingNotes.SpeechRecognition;
@@ -24,7 +23,6 @@ namespace Aspose.MeetingNotes
         private readonly IContentExporter contentExporter;
         private readonly MeetingNotesOptions options;
         private readonly ILogger<MeetingNotesClient> logger;
-        private readonly IMetricsCollector metrics;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MeetingNotesClient"/> class.
@@ -36,7 +34,6 @@ namespace Aspose.MeetingNotes
         /// <param name="contentExporter">Service for exporting content to various formats.</param>
         /// <param name="options">Configuration options for the client.</param>
         /// <param name="logger">Logger instance for logging operations.</param>
-        /// <param name="metrics">Service for tracking performance metrics.</param>
         public MeetingNotesClient(
             IAudioProcessor audioProcessor,
             ISpeechRecognizer speechRecognizer,
@@ -44,8 +41,7 @@ namespace Aspose.MeetingNotes
             IActionItemExtractor actionItemExtractor,
             IContentExporter contentExporter,
             IOptions<MeetingNotesOptions> options,
-            ILogger<MeetingNotesClient> logger,
-            IMetricsCollector metrics)
+            ILogger<MeetingNotesClient> logger)
         {
             this.audioProcessor = audioProcessor;
             this.speechRecognizer = speechRecognizer;
@@ -54,7 +50,6 @@ namespace Aspose.MeetingNotes
             this.contentExporter = contentExporter;
             this.options = options.Value;
             this.logger = logger;
-            this.metrics = metrics;
         }
 
         /// <summary>

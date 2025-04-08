@@ -1,6 +1,5 @@
 ﻿using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.Exceptions;
-using Aspose.MeetingNotes.Metrics;
 using Aspose.MeetingNotes.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,7 +15,6 @@ namespace Aspose.MeetingNotes.SpeechRecognition
     {
         private readonly ILogger<WhisperSpeechRecognizer> logger;
         private readonly MeetingNotesOptions options;
-        private readonly IMetricsCollector metrics;
         private readonly SemaphoreSlim lockObj = new (1, 1);
         private readonly string modelPath;
         private WhisperFactory? whisperFactory;
@@ -27,15 +25,12 @@ namespace Aspose.MeetingNotes.SpeechRecognition
         /// </summary>
         /// <param name="logger">The logger instance for logging transcription events</param>
         /// <param name="options">The configuration options for the speech recognizer</param>
-        /// <param name="metrics">The metrics collector for recording transcription metrics</param>
         public WhisperSpeechRecognizer(
             ILogger<WhisperSpeechRecognizer> logger,
-            IOptions<MeetingNotesOptions> options,
-            IMetricsCollector metrics)
+            IOptions<MeetingNotesOptions> options)
         {
             this.logger = logger;
             this.options = options.Value;
-            this.metrics = metrics;
             this.modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models", "ggml-base.bin");
         }
 
@@ -98,12 +93,6 @@ namespace Aspose.MeetingNotes.SpeechRecognition
                         EndTime = segment.End
                     });
                 }
-
-                // Record metrics
-                metrics.RecordMetric("transcription.segments", segments.Count);
-                metrics.RecordTiming(
-                    "transcription.duration",
-                    (segments.LastOrDefault()?.EndTime ?? TimeSpan.Zero).TotalMilliseconds);
 
                 return new TranscriptionResult
                 {

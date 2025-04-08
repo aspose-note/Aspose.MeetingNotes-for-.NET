@@ -4,7 +4,6 @@ using Aspose.MeetingNotes.AudioProcessing;
 using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.ContentAnalysis;
 using Aspose.MeetingNotes.Exporters;
-using Aspose.MeetingNotes.Metrics;
 using Aspose.MeetingNotes.SpeechRecognition;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -54,9 +53,6 @@ namespace Aspose.MeetingNotes.DependencyInjection
                     _ => throw new ArgumentException($"Unsupported AI model: {options.AIModelType.ToString()}")
                 };
             });
-
-            // Add metrics collector
-            services.AddScoped<IMetricsCollector, MetricsCollector>();
 
             // Add MeetingNotes client
             services.AddScoped<MeetingNotesClient>();
