@@ -1,3 +1,5 @@
+﻿using System.Text;
+using System.Text.Json;
 using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.Models;
 using Microsoft.Extensions.Logging;
@@ -9,6 +11,8 @@ namespace Aspose.MeetingNotes.AIIntegration
     /// </summary>
     public class ChatGPTModel : IAIModel
     {
+        private const string ApiEndpoint = "https://api.openai.com/v1/chat/completions";
+
         private readonly HttpClient httpClient;
         private readonly MeetingNotesOptions options;
         private readonly ILogger<ChatGPTModel> logger;
@@ -24,6 +28,13 @@ namespace Aspose.MeetingNotes.AIIntegration
             this.httpClient = httpClient;
             this.options = options;
             this.logger = logger;
+
+            if (string.IsNullOrEmpty(options.AIModelApiKey))
+            {
+                throw new ArgumentException("ChatGPT API key is required", nameof(options));
+            }
+
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {options.AIModelApiKey}");
         }
 
         /// <summary>
@@ -34,13 +45,26 @@ namespace Aspose.MeetingNotes.AIIntegration
         /// <returns>A task representing the asynchronous operation. The task result contains the AI analysis result.</returns>
         public async Task<AIAnalysisResult> AnalyzeContentAsync(string text, CancellationToken cancellationToken = default)
         {
-            // Implementation of ChatGPT API call for content analysis
-            return new AIAnalysisResult
+            try
             {
-                Summary = "Meeting summary...",
-                KeyPoints = new List<string> { "Key point 1", "Key point 2" },
-                Topics = new List<string> { "Topic 1", "Topic 2" }
-            };
+                var prompt = $@"Analyze the following meeting transcript and provide:
+1. A concise summary (max 200 words)
+2. Key points discussed
+3. Main topics covered
+
+Transcript:
+{text}";
+
+                var response = await SendChatGPTRequestAsync(prompt, cancellationToken);
+                var result = ParseAnalysisResponse(response);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error analyzing content with ChatGPT");
+                throw;
+            }
         }
 
         /// <summary>
@@ -51,16 +75,123 @@ namespace Aspose.MeetingNotes.AIIntegration
         /// <returns>A task representing the asynchronous operation. The task result contains the list of extracted action items.</returns>
         public async Task<List<ActionItem>> ExtractActionItemsAsync(string text, CancellationToken cancellationToken = default)
         {
-            // Implementation of ChatGPT API call for action item extraction
-            return new List<ActionItem>
+            try
             {
-                new ActionItem
+                var prompt = $@"Extract action items from the following meeting transcript. For each action item, identify:
+1. The task description
+2. The assignee (if mentioned)
+3. The due date (if mentioned)
+
+Format the response as a JSON array of objects with properties: description, assignee, dueDate.
+
+Transcript:
+{text}";
+
+                var response = await SendChatGPTRequestAsync(prompt, cancellationToken);
+                var actionItems = ParseActionItemsResponse(response);
+
+                return actionItems;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error extracting action items with ChatGPT");
+                throw;
+            }
+        }
+
+        private async Task<string> SendChatGPTRequestAsync(string prompt, CancellationToken cancellationToken)
+        {
+            var requestBody = new
+            {
+                model = "gpt-3.5-turbo",
+                messages = new[]
                 {
-                    Description = "Sample action item",
-                    Assignee = "John Doe",
-                    DueDate = DateTime.Now.AddDays(7)
-                }
+                    new { role = "user", content = prompt }
+                },
+                temperature = 0.7
             };
+
+            var json = JsonSerializer.Serialize(requestBody);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await httpClient.PostAsync(ApiEndpoint, content, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            var responseObject = JsonSerializer.Deserialize<ChatGPTResponse>(responseContent);
+
+            return responseObject?.Choices?.FirstOrDefault()?.Message?.Content ?? string.Empty;
+        }
+
+        private static AIAnalysisResult ParseAnalysisResponse(string response)
+        {
+            // Simple parsing logic - in a real implementation, you might want to use more sophisticated parsing
+            var lines = response.Split('\n');
+            var summary = lines.FirstOrDefault(l => l.StartsWith("Summary:"))?.Replace("Summary:", string.Empty).Trim() ?? string.Empty;
+            var keyPoints = lines.Where(l => l.StartsWith("-")).Select(l => l.TrimStart('-').Trim()).ToList();
+            var topics = lines.Where(l => l.StartsWith("Topic:")).Select(l => l.Replace("Topic:", string.Empty).Trim()).ToList();
+
+            return new AIAnalysisResult
+            {
+                Summary = summary,
+                KeyPoints = keyPoints,
+                Topics = topics
+            };
+        }
+
+        private List<ActionItem> ParseActionItemsResponse(string response)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<List<ActionItem>>(response) ?? new List<ActionItem>();
+            }
+            catch (JsonException)
+            {
+                logger.LogWarning("Failed to parse action items as JSON, falling back to text parsing");
+                return ParseActionItemsFromText(response);
+            }
+        }
+
+        private static List<ActionItem> ParseActionItemsFromText(string response)
+        {
+            var actionItems = new List<ActionItem>();
+            var lines = response.Split('\n');
+
+            foreach (var line in lines)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+
+                var parts = line.Split('|').Select(p => p.Trim()).ToArray();
+                if (parts.Length >= 1)
+                {
+                    actionItems.Add(new ActionItem
+                    {
+                        Description = parts[0],
+                        Assignee = parts.Length > 1 ? parts[1] : null,
+                        DueDate = parts.Length > 2 && DateTime.TryParse(parts[2], out var date) ? date : null
+                    });
+                }
+            }
+
+            return actionItems;
+        }
+
+        private class ChatGPTResponse
+        {
+            public List<Choice> Choices { get; set; } = new();
+        }
+
+        private class Choice
+        {
+            public Message Message { get; set; } = new();
+        }
+
+        private class Message
+        {
+            public string Content { get; set; } = string.Empty;
         }
     }
 }
