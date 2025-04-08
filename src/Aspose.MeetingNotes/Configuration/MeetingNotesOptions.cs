@@ -1,4 +1,6 @@
-﻿using Aspose.MeetingNotes.Models;
+﻿using Aspose.MeetingNotes.AIIntegration;
+using Aspose.MeetingNotes.Models;
+using Aspose.MeetingNotes.SpeechRecognition;
 
 namespace Aspose.MeetingNotes.Configuration
 {
@@ -36,5 +38,17 @@ namespace Aspose.MeetingNotes.Configuration
         /// Gets or sets the selected AI model to use for analysis.
         /// </summary>
         public AIModelType AIModelType { get; set; } = AIModelType.ChatGPT;
+
+        /// <summary>
+        /// Gets or sets a custom implementation of IAIModel.
+        /// If set, this implementation will be used instead of the built-in models.
+        /// </summary>
+        public IAIModel? CustomAIModel { get; set; }
+
+        /// <summary>
+        /// Gets or sets a custom implementation of ISpeechRecognizer.
+        /// If set, this implementation will be used instead of the built-in WhisperSpeechRecognizer.
+        /// </summary>
+        public ISpeechRecognizer? CustomSpeechRecognizer { get; set; }
     }
 }

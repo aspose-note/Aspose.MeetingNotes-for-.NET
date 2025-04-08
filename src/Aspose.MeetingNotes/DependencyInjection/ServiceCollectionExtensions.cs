@@ -33,7 +33,13 @@ namespace Aspose.MeetingNotes.DependencyInjection
             // Register services
             services.AddHttpClient();
             services.AddSingleton<IAudioProcessor, AudioProcessor>();
-            services.AddScoped<ISpeechRecognizer, WhisperSpeechRecognizer>();
+            services.AddScoped<ISpeechRecognizer>(sp =>
+            {
+                var options = sp.GetRequiredService<IOptions<MeetingNotesOptions>>().Value;
+                return options.CustomSpeechRecognizer ?? new WhisperSpeechRecognizer(
+                    sp.GetRequiredService<ILogger<WhisperSpeechRecognizer>>(),
+                    sp.GetRequiredService<IOptions<MeetingNotesOptions>>());
+            });
             services.AddSingleton<IContentAnalyzer, ContentAnalyzer>();
             services.AddSingleton<IActionItemExtractor, ActionItemExtractor>();
             services.AddSingleton<IContentExporter, ContentExporter>();
@@ -42,6 +48,13 @@ namespace Aspose.MeetingNotes.DependencyInjection
             services.AddSingleton<IAIModel>(sp =>
             {
                 var options = sp.GetRequiredService<IOptions<MeetingNotesOptions>>().Value;
+
+                // Use custom model if provided
+                if (options.CustomAIModel != null)
+                {
+                    return options.CustomAIModel;
+                }
+
                 var httpClient = sp.GetRequiredService<HttpClient>();
                 var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
 
