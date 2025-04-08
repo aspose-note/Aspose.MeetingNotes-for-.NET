@@ -1,11 +1,10 @@
-using Aspose.MeetingNotes.ActionItems;
+﻿using Aspose.MeetingNotes.ActionItems;
 using Aspose.MeetingNotes.AIIntegration;
 using Aspose.MeetingNotes.AudioProcessing;
 using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.ContentAnalysis;
 using Aspose.MeetingNotes.Exporters;
 using Aspose.MeetingNotes.Metrics;
-using Aspose.MeetingNotes.Monitoring;
 using Aspose.MeetingNotes.SpeechRecognition;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -39,7 +38,6 @@ namespace Aspose.MeetingNotes.DependencyInjection
             services.AddSingleton<IContentAnalyzer, ContentAnalyzer>();
             services.AddSingleton<IActionItemExtractor, ActionItemExtractor>();
             services.AddSingleton<IContentExporter, ContentExporter>();
-            services.AddSingleton<PerformanceMetrics>();
 
             // Register AI model based on configuration
             services.AddSingleton<IAIModel>(sp =>
