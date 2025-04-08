@@ -50,23 +50,7 @@ namespace Aspose.MeetingNotes.AIIntegration
                 {
                     Summary = "Meeting summary from Grok...",
                     KeyPoints = new List<string> { "Key point 1 from Grok", "Key point 2 from Grok" },
-                    Topics = new List<string> { "Topic 1", "Topic 2" },
-                    Decisions = new List<string> { "Decision 1", "Decision 2" },
-                    Sentiment = new SentimentAnalysis
-                    {
-                        Score = 0.8,
-                        Category = SentimentCategory.Positive,
-                        EmotionalMarkers = new List<EmotionalMarker>
-                        {
-                            new EmotionalMarker
-                            {
-                                Emotion = "Enthusiasm",
-                                Intensity = 0.9,
-                                Timestamp = TimeSpan.FromMinutes(5)
-                            }
-                        }
-                    },
-                    ConfidenceScore = 0.85
+                    Topics = new List<string> { "Topic 1", "Topic 2" }
                 };
             }
             catch (Exception ex)

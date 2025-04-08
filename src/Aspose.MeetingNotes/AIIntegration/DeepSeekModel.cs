@@ -1,4 +1,4 @@
-using Aspose.MeetingNotes.Configuration;
+﻿using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.Exceptions;
 using Aspose.MeetingNotes.Models;
 using Microsoft.Extensions.Logging;
@@ -49,23 +49,7 @@ namespace Aspose.MeetingNotes.AIIntegration
                 {
                     Summary = "Meeting summary from DeepSeek...",
                     KeyPoints = new List<string> { "Key point 1 from DeepSeek", "Key point 2 from DeepSeek" },
-                    Topics = new List<string> { "Topic 1", "Topic 2" },
-                    Decisions = new List<string> { "Decision 1", "Decision 2" },
-                    Sentiment = new SentimentAnalysis
-                    {
-                        Score = 0.75,
-                        Category = SentimentCategory.Positive,
-                        EmotionalMarkers = new List<EmotionalMarker>
-                        {
-                            new EmotionalMarker
-                            {
-                                Emotion = "Confidence",
-                                Intensity = 0.85,
-                                Timestamp = TimeSpan.FromMinutes(10)
-                            }
-                        }
-                    },
-                    ConfidenceScore = 0.9
+                    Topics = new List<string> { "Topic 1", "Topic 2" }
                 };
             }
             catch (Exception ex)
