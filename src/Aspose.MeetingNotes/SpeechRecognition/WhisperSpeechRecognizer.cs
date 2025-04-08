@@ -31,7 +31,7 @@ namespace Aspose.MeetingNotes.SpeechRecognition
         {
             this.logger = logger;
             this.options = options.Value;
-            this.modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models", "ggml-base.bin");
+            this.modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models", "ggml-base-gguf.bin");
         }
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace Aspose.MeetingNotes.SpeechRecognition
 
                 // Create processor with specified language
                 using var processor = whisperFactory.CreateBuilder()
-                    .WithLanguage("auto")
+                    .WithLanguage(options.Language)
                     .Build();
 
                 // Process audio
@@ -129,7 +129,16 @@ namespace Aspose.MeetingNotes.SpeechRecognition
                 }
 
                 logger.LogInformation("Initializing Whisper factory with model: {ModelPath}", modelPath);
-                whisperFactory = WhisperFactory.FromPath(modelPath);
+
+                try
+                {
+                    whisperFactory = WhisperFactory.FromPath(modelPath);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to load the Whisper model from path: {ModelPath}", modelPath);
+                    throw;
+                }
             }
             finally
             {

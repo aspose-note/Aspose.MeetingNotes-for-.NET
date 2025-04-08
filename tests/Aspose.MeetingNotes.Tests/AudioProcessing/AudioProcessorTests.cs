@@ -1,13 +1,7 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using FluentAssertions;
 using Aspose.MeetingNotes.AudioProcessing;
-using Aspose.MeetingNotes.Models;
 
 namespace Aspose.MeetingNotes.Tests.AudioProcessing
 {
