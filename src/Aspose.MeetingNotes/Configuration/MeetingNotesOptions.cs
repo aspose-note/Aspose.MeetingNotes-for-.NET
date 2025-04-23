@@ -5,7 +5,7 @@ using Aspose.MeetingNotes.SpeechRecognition;
 namespace Aspose.MeetingNotes.Configuration
 {
     /// <summary>
-    /// Configuration options for the MeetingNotes SDK.
+    /// Base configuration options for the MeetingNotes SDK.
     /// </summary>
     public class MeetingNotesOptions
     {
@@ -20,35 +20,25 @@ namespace Aspose.MeetingNotes.Configuration
         public ExportFormat ExportFormat { get; set; } = ExportFormat.Markdown;
 
         /// <summary>
-        /// Gets or sets the path to the Whisper model file.
+        /// Gets or sets the speech recognition options.
         /// </summary>
-        public string WhisperModelPath { get; set; } = string.Empty;
+        public SpeechRecognitionOptions SpeechRecognition { get; set; } = new ();
 
         /// <summary>
-        /// Gets or sets the size of the Whisper model to use.
+        /// Gets or sets the AI model options.
         /// </summary>
-        public string WhisperModelSize { get; set; } = "base";
-
-        /// <summary>
-        /// Gets or sets the API key for the AI model service.
-        /// </summary>
-        public string AIModelApiKey { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the selected AI model to use for analysis.
-        /// </summary>
-        public AIModelType AIModelType { get; set; } = AIModelType.ChatGPT;
-
-        /// <summary>
-        /// Gets or sets a custom implementation of IAIModel.
-        /// If set, this implementation will be used instead of the built-in models.
-        /// </summary>
-        public IAIModel? CustomAIModel { get; set; }
+        public AIModelOptions AIModel { get; set; } = new ChatGPTOptions();
 
         /// <summary>
         /// Gets or sets a custom implementation of ISpeechRecognizer.
         /// If set, this implementation will be used instead of the built-in WhisperSpeechRecognizer.
         /// </summary>
         public ISpeechRecognizer? CustomSpeechRecognizer { get; set; }
+
+        /// <summary>
+        /// Gets or sets a custom implementation of IAIModel.
+        /// If set, this implementation will be used instead of the built-in models.
+        /// </summary>
+        public IAIModel? CustomAIModel { get; set; }
     }
 }

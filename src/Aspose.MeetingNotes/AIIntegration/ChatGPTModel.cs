@@ -14,7 +14,7 @@ namespace Aspose.MeetingNotes.AIIntegration
         private const string ApiEndpoint = "https://api.openai.com/v1/chat/completions";
 
         private readonly HttpClient httpClient;
-        private readonly MeetingNotesOptions options;
+        private readonly ChatGPTOptions chatgptOptions;
         private readonly ILogger<ChatGPTModel> logger;
 
         /// <summary>
@@ -26,15 +26,15 @@ namespace Aspose.MeetingNotes.AIIntegration
         public ChatGPTModel(HttpClient httpClient, MeetingNotesOptions options, ILogger<ChatGPTModel> logger)
         {
             this.httpClient = httpClient;
-            this.options = options;
+            this.chatgptOptions = (ChatGPTOptions)options.AIModel;
             this.logger = logger;
 
-            if (string.IsNullOrEmpty(options.AIModelApiKey))
+            if (string.IsNullOrEmpty(this.chatgptOptions.ApiKey))
             {
                 throw new ArgumentException("ChatGPT API key is required", nameof(options));
             }
 
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {options.AIModelApiKey}");
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {this.chatgptOptions.ApiKey}");
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace Aspose.MeetingNotes.AIIntegration
         /// <param name="text">The text content to analyze.</param>
         /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
         /// <returns>A task representing the asynchronous operation. The task result contains the AI analysis result.</returns>
-        public async Task<AIAnalysisResult> AnalyzeContentAsync(string text, CancellationToken cancellationToken = default)
+        public async Task<AnalyzedContent> AnalyzeContentAsync(string text, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -57,6 +57,7 @@ Transcript:
 
                 var response = await SendChatGPTRequestAsync(prompt, cancellationToken);
                 var result = ParseAnalysisResponse(response);
+                result.TranscribedText = text;
 
                 return result;
             }
@@ -123,7 +124,7 @@ Transcript:
             return responseObject?.Choices?.FirstOrDefault()?.Message?.Content ?? string.Empty;
         }
 
-        private static AIAnalysisResult ParseAnalysisResponse(string response)
+        private static AnalyzedContent ParseAnalysisResponse(string response)
         {
             // Simple parsing logic - in a real implementation, you might want to use more sophisticated parsing
             var lines = response.Split('\n');
@@ -131,7 +132,7 @@ Transcript:
             var keyPoints = lines.Where(l => l.StartsWith("-")).Select(l => l.TrimStart('-').Trim()).ToList();
             var topics = lines.Where(l => l.StartsWith("Topic:")).Select(l => l.Replace("Topic:", string.Empty).Trim()).ToList();
 
-            return new AIAnalysisResult
+            return new AnalyzedContent
             {
                 Summary = summary,
                 KeyPoints = keyPoints,
@@ -171,7 +172,7 @@ Transcript:
                     {
                         Description = parts[0],
                         Assignee = parts.Length > 1 ? parts[1] : null,
-                        DueDate = parts.Length > 2 && DateTime.TryParse(parts[2], out var date) ? date : null
+                        DueDate = parts[2]
                     });
                 }
             }

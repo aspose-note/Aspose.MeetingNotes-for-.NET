@@ -9,17 +9,20 @@ namespace Aspose.MeetingNotes.Tests.AudioProcessing
     {
         private readonly ILogger<AudioProcessor> _logger;
         private readonly AudioProcessor _processor;
+        private readonly List<IAudioFormatHandler> _handlers;
 
         public AudioProcessorTests()
         {
             _logger = Mock.Of<ILogger<AudioProcessor>>();
-            _processor = new AudioProcessor(_logger);
+            _handlers =
+            [
+                new TestAudioHandler(Mock.Of<ILogger>())
+            ];
+            _processor = new AudioProcessor(_logger, _handlers);
         }
 
         [Theory]
-        [InlineData(".mp3", true)]
-        [InlineData(".wav", true)]
-        [InlineData(".m4a", true)]
+        [InlineData(".test", true)]
         [InlineData(".txt", false)]
         public void IsFormatSupported_ReturnsExpectedResult(string extension, bool expected)
         {
@@ -35,7 +38,7 @@ namespace Aspose.MeetingNotes.Tests.AudioProcessing
             var stream = new MemoryStream(audioData);
 
             // Act
-            var result = await _processor.ProcessAsync(stream);
+            var result = await _processor.ConvertToWavAsync(stream, ".test");
 
             // Assert
             Assert.NotNull(result);

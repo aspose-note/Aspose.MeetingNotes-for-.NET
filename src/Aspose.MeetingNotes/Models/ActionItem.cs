@@ -18,11 +18,16 @@
         /// <summary>
         /// Gets or sets due date for completing the action item
         /// </summary>
-        public DateTime? DueDate { get; set; }
+        public string DueDate { get; set; } = "Not specified";
 
         /// <summary>
         /// Gets or sets current status of the action item (e.g., "Not Started", "In Progress", "Completed")
         /// </summary>
         public string? Status { get; set; }
+
+        /// <summary>
+        /// Gets or sets priority of the action item (High, Medium, Low)
+        /// </summary>
+        public string Priority { get; set; } = "Medium";
     }
 }

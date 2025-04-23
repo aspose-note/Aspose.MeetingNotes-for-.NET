@@ -25,8 +25,8 @@ namespace Aspose.MeetingNotes.Tests.Mocks
 
             return new TranscriptionResult
             {
-                Segments = new List<TranscriptionSegment>
-                {
+                Segments =
+                [
                     new TranscriptionSegment
                     {
                         Speaker = "Speaker 1",
@@ -34,7 +34,7 @@ namespace Aspose.MeetingNotes.Tests.Mocks
                         StartTime = TimeSpan.Zero,
                         EndTime = TimeSpan.FromSeconds(5)
                     }
-                },
+                ],
                 Language = language,
                 Success = true,
                 FullText = "This is a test transcription for the custom AI model test."

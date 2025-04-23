@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Aspose.MeetingNotes.Models;
 using Microsoft.Extensions.Logging;
 
@@ -126,6 +126,28 @@ namespace Aspose.MeetingNotes.Exporters
                     sb.AppendLine(section.Content);
                     sb.AppendLine();
                 }
+            }
+
+            // Add decisions
+            if (content.Decisions.Any())
+            {
+                sb.AppendLine("## Decisions");
+                foreach (var decision in content.Decisions)
+                {
+                    sb.AppendLine($"- {decision}");
+                }
+                sb.AppendLine();
+            }
+
+            // Add topics
+            if (content.Topics.Any())
+            {
+                sb.AppendLine("## Topics Discussed");
+                foreach (var topic in content.Topics)
+                {
+                    sb.AppendLine($"- {topic}");
+                }
+                sb.AppendLine();
             }
 
             // Add Q&A section

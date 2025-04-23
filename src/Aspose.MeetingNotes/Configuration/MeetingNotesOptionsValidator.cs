@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 
 namespace Aspose.MeetingNotes.Configuration
 {
@@ -22,12 +22,7 @@ namespace Aspose.MeetingNotes.Configuration
                 errors.Add("Language must be specified");
             }
 
-            if (string.IsNullOrEmpty(options.AIModelApiKey))
-            {
-                errors.Add("AI API key must be specified");
-            }
-
-            if (!IsValidWhisperModelSize(options.WhisperModelSize))
+            if (!IsValidWhisperModelSize(options.SpeechRecognition.ModelSize))
             {
                 errors.Add("Invalid Whisper model size. Valid values are: tiny, base, small, medium, large");
             }

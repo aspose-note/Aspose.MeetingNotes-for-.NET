@@ -11,13 +11,8 @@
         ChatGPT,
 
         /// <summary>
-        /// xAI's Grok model.
+        /// LLama 2 model.
         /// </summary>
-        Grok,
-
-        /// <summary>
-        /// DeepSeek's AI model.
-        /// </summary>
-        DeepSeek
+        LLama
     }
 }

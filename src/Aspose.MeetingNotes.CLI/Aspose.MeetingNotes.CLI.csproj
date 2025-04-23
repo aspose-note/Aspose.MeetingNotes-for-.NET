@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackAsTool>true</PackAsTool>
@@ -19,6 +19,12 @@
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="6.0.0" />
     <ProjectReference Include="..\Aspose.MeetingNotes\Aspose.MeetingNotes.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Aspose.LLApi">
+      <HintPath>..\..\external\Aspose.LLApi.1.0.0_last\lib\net8.0\Aspose.LLApi.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project> 

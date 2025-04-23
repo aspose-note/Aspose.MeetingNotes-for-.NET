@@ -93,7 +93,7 @@ namespace Aspose.MeetingNotes
                 ProcessedAudio processedAudio;
                 try
                 {
-                    processedAudio = await audioProcessor.ProcessAsync(audioStream, cancellationToken);
+                    processedAudio = await audioProcessor.ConvertToWavAsync(audioStream, fileExtension, cancellationToken);
                 }
                 catch (Exception ex)
                 {

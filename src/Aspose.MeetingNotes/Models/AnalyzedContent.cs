@@ -6,7 +6,7 @@
     public class AnalyzedContent
     {
         /// <summary>
-        /// Gets or sets brief summary of the meeting content
+        /// Gets or sets brief summary of the meeting content (max 200 words)
         /// </summary>
         public string Summary { get; set; } = string.Empty;
 
@@ -19,6 +19,16 @@
         /// Gets or sets key points extracted from the meeting
         /// </summary>
         public List<string> KeyPoints { get; set; } = new ();
+
+        /// <summary>
+        /// Gets or sets decisions made during the meeting
+        /// </summary>
+        public List<string> Decisions { get; set; } = new ();
+
+        /// <summary>
+        /// Gets or sets topics discussed during the meeting
+        /// </summary>
+        public List<string> Topics { get; set; } = new ();
 
         /// <summary>
         /// Gets or sets questions and answers identified in the meeting

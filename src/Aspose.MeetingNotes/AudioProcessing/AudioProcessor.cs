@@ -1,58 +1,78 @@
-﻿using Aspose.MeetingNotes.Models;
+﻿using Aspose.MeetingNotes.Exceptions;
+using Aspose.MeetingNotes.Models;
 using Microsoft.Extensions.Logging;
 
 namespace Aspose.MeetingNotes.AudioProcessing
 {
     /// <summary>
-    /// Implementation of audio processing operations
+    /// Processes audio input and converts it to WAV format
     /// </summary>
     public class AudioProcessor : IAudioProcessor
     {
         private readonly ILogger<AudioProcessor> logger;
-        private readonly HashSet<string> supportedFormats = new (StringComparer.OrdinalIgnoreCase)
-        { ".mp3", ".wav", ".m4a", ".ogg", ".flac" };
+        private readonly Dictionary<string, IAudioFormatHandler> formatHandlers;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AudioProcessor"/> class.
         /// </summary>
         /// <param name="logger">The logger instance for logging audio processing operations.</param>
-        public AudioProcessor(ILogger<AudioProcessor> logger)
+        /// <param name="handlers">Collection of audio format handlers.</param>
+        public AudioProcessor(
+            ILogger<AudioProcessor> logger,
+            IEnumerable<IAudioFormatHandler> handlers)
         {
             this.logger = logger;
+            formatHandlers = handlers.ToDictionary(h => h.SupportedExtension, h => h);
         }
 
         /// <inheritdoc/>
-        public async Task<ProcessedAudio> ProcessAsync(Stream audioStream, CancellationToken cancellationToken = default)
+        public async Task<ProcessedAudio> ConvertToWavAsync(Stream audioStream, string fileExtension, CancellationToken cancellationToken = default)
         {
             try
             {
-                logger.LogInformation("Starting audio processing");
+                logger.LogInformation("Processing audio with extension: {Extension}", fileExtension);
 
-                // Create a new memory stream and copy the input
-                var memoryStream = new MemoryStream();
-                await audioStream.CopyToAsync(memoryStream, cancellationToken);
-                memoryStream.Position = 0;
-
-                return new ProcessedAudio
+                if (!IsFormatSupported(fileExtension))
                 {
-                    AudioStream = memoryStream,
-                    FileExtension = ".wav", // Default to WAV for now
-                    SampleRate = 16000, // Default sample rate
-                    Channels = 1, // Default to mono
-                    Duration = TimeSpan.FromSeconds(0) // TODO: Calculate actual duration
-                };
+                    throw new AudioProcessingException($"Unsupported audio format: {fileExtension}");
+                }
+
+                var handler = formatHandlers[fileExtension];
+                return await handler.ConvertToWavAsync(audioStream, cancellationToken);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error processing audio");
-                throw;
+                throw new AudioProcessingException("Failed to process audio", ex);
             }
         }
 
         /// <inheritdoc/>
         public bool IsFormatSupported(string fileExtension)
         {
-            return supportedFormats.Contains(fileExtension);
+            return formatHandlers.ContainsKey(fileExtension);
+        }
+
+        /// <inheritdoc/>
+        public async Task<AudioFormatInfo> GetFormatInfoAsync(Stream audioStream, string fileExtension)
+        {
+            try
+            {
+                logger.LogInformation("Getting format information for extension: {Extension}", fileExtension);
+
+                if (!IsFormatSupported(fileExtension))
+                {
+                    throw new AudioProcessingException($"Unsupported audio format: {fileExtension}");
+                }
+
+                var handler = formatHandlers[fileExtension];
+                return await handler.GetFormatInfoAsync(audioStream);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting format information");
+                throw new AudioProcessingException("Failed to get format information", ex);
+            }
         }
     }
 }

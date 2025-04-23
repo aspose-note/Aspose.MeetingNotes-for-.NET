@@ -32,7 +32,14 @@ namespace Aspose.MeetingNotes.DependencyInjection
 
             // Register services
             services.AddHttpClient();
+
+            // Register audio format handlers
+            services.AddSingleton<IAudioFormatHandler, WavAudioHandler>();
+            services.AddSingleton<IAudioFormatHandler, OggAudioHandler>();
+
+            // Register audio processor
             services.AddSingleton<IAudioProcessor, AudioProcessor>();
+
             services.AddScoped<ISpeechRecognizer>(sp =>
             {
                 var options = sp.GetRequiredService<IOptions<MeetingNotesOptions>>().Value;
@@ -40,6 +47,7 @@ namespace Aspose.MeetingNotes.DependencyInjection
                     sp.GetRequiredService<ILogger<WhisperSpeechRecognizer>>(),
                     sp.GetRequiredService<IOptions<MeetingNotesOptions>>());
             });
+
             services.AddSingleton<IContentAnalyzer, ContentAnalyzer>();
             services.AddSingleton<IActionItemExtractor, ActionItemExtractor>();
             services.AddSingleton<IContentExporter, ContentExporter>();
@@ -55,15 +63,18 @@ namespace Aspose.MeetingNotes.DependencyInjection
                     return options.CustomAIModel;
                 }
 
-                var httpClient = sp.GetRequiredService<HttpClient>();
                 var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
 
-                return options.AIModelType switch
+                return options.AIModel.Type switch
                 {
-                    AIModelType.ChatGPT => new ChatGPTModel(httpClient, options, loggerFactory.CreateLogger<ChatGPTModel>()),
-                    AIModelType.Grok => new GrokModel(httpClient, options, loggerFactory.CreateLogger<GrokModel>()),
-                    AIModelType.DeepSeek => new DeepSeekModel(httpClient, options, loggerFactory.CreateLogger<DeepSeekModel>()),
-                    _ => throw new ArgumentException($"Unsupported AI model: {options.AIModelType.ToString()}")
+                    AIModelType.ChatGPT => new ChatGPTModel(
+                        sp.GetRequiredService<HttpClient>(),
+                        options,
+                        loggerFactory.CreateLogger<ChatGPTModel>()),
+                    AIModelType.LLama => new LLamaModel(
+                        options,
+                        loggerFactory.CreateLogger<LLamaModel>()),
+                    _ => throw new ArgumentException($"Unsupported AI model: {options.AIModel.Type.ToString()}")
                 };
             });
 

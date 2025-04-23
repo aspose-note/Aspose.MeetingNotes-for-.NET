@@ -36,16 +36,8 @@ namespace Aspose.MeetingNotes.ContentAnalysis
             var fullText = string.Join("\n", transcription.Segments.Select(s => s.Text));
             var aiResult = await aiModel.AnalyzeContentAsync(fullText, cancellationToken);
 
-            var content = new AnalyzedContent
-            {
-                Summary = aiResult.Summary,
-                Sections = new List<ContentSection>(),
-                KeyPoints = aiResult.KeyPoints,
-                QASegments = ExtractQASegments(transcription.Segments),
-                TranscribedText = fullText
-            };
-
-            return content;
+            logger.LogInformation("Content analysis completed successfully");
+            return aiResult;
         }
 
         /// <summary>
@@ -58,28 +50,6 @@ namespace Aspose.MeetingNotes.ContentAnalysis
         {
             // Generate a concise summary (max 200 words)
             return content.Summary;
-        }
-
-        private List<QASegment> ExtractQASegments(List<TranscriptionSegment> segments)
-        {
-            var qaSegments = new List<QASegment>();
-            var questionKeywords = new[] { "what", "how", "why", "when", "where", "who" };
-
-            for (int i = 0; i < segments.Count; i++)
-            {
-                var segment = segments[i];
-                if (questionKeywords.Any(keyword => segment.Text.ToLower().Contains(keyword)))
-                {
-                    var qaSegment = new QASegment
-                    {
-                        Question = segment.Text,
-                        Answer = i + 1 < segments.Count ? segments[i + 1].Text : "No answer provided"
-                    };
-                    qaSegments.Add(qaSegment);
-                }
-            }
-
-            return qaSegments;
         }
     }
 }

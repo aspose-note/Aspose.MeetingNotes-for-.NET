@@ -1,5 +1,6 @@
 using Aspose.MeetingNotes.ActionItems;
 using Aspose.MeetingNotes.AIIntegration;
+using Aspose.MeetingNotes.AudioProcessing;
 using Aspose.MeetingNotes.ContentAnalysis;
 using Aspose.MeetingNotes.DependencyInjection;
 using Aspose.MeetingNotes.Models;
@@ -20,11 +21,11 @@ namespace Aspose.MeetingNotes.Tests.AIIntegration
             var mockLogger = new Mock<ILogger<ContentAnalyzer>>();
             var mockAIModel = new Mock<IAIModel>();
             
-            var expectedResult = new AIAnalysisResult
+            var expectedResult = new AnalyzedContent
             {
                 Summary = "Test summary from custom model",
-                KeyPoints = new List<string> { "Test key point" },
-                Topics = new List<string> { "Test topic" }
+                KeyPoints = ["Test key point"],
+                Topics = ["Test topic"]
             };
 
             mockAIModel.Setup(m => m.AnalyzeContentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -33,10 +34,10 @@ namespace Aspose.MeetingNotes.Tests.AIIntegration
             var contentAnalyzer = new ContentAnalyzer(mockAIModel.Object, mockLogger.Object);
             var transcription = new TranscriptionResult
             {
-                Segments = new List<TranscriptionSegment>
-                {
+                Segments =
+                [
                     new TranscriptionSegment { Text = "Test transcription" }
-                }
+                ]
             };
 
             // Act
@@ -60,11 +61,10 @@ namespace Aspose.MeetingNotes.Tests.AIIntegration
             
             var expectedActionItems = new List<ActionItem>
             {
-                new ActionItem
-                {
+                new() {
                     Description = "Test action item",
                     Assignee = "Test User",
-                    DueDate = DateTime.Now.AddDays(7),
+                    DueDate = DateTime.Now.AddDays(7).ToString(),
                     Status = "New"
                 }
             };
@@ -89,7 +89,7 @@ namespace Aspose.MeetingNotes.Tests.AIIntegration
             Assert.Single(result);
             Assert.Equal(expectedActionItems[0].Description, result[0].Description);
             Assert.Equal(expectedActionItems[0].Assignee, result[0].Assignee);
-            Assert.Equal(expectedActionItems[0].DueDate.Value.Date, result[0].DueDate.Value.Date);
+            Assert.Equal(expectedActionItems[0].DueDate, result[0].DueDate);
             Assert.Equal(expectedActionItems[0].Status, result[0].Status);
             
             mockAIModel.Verify(m => m.ExtractActionItemsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -102,8 +102,10 @@ namespace Aspose.MeetingNotes.Tests.AIIntegration
             var services = new ServiceCollection();
             var mockLogger = new Mock<ILogger<MockAIModel>>();
             var mockSpeechLogger = new Mock<ILogger<MockSpeechRecognizer>>();
+            var mockAudioLogger = new Mock<ILogger<MockAudioProcessor>>();
             var customModel = new MockAIModel(mockLogger.Object);
             var mockSpeechRecognizer = new MockSpeechRecognizer(mockSpeechLogger.Object);
+            var mockAudioProcessor = new MockAudioProcessor(mockAudioLogger.Object);
 
             services.AddLogging();
             services.AddMeetingNotes(options =>
@@ -113,6 +115,9 @@ namespace Aspose.MeetingNotes.Tests.AIIntegration
                 options.Language = "en";
                 options.ExportFormat = ExportFormat.Markdown;
             });
+
+            // Register mock audio processor
+            services.AddSingleton<IAudioProcessor>(mockAudioProcessor);
 
             var serviceProvider = services.BuildServiceProvider();
             var client = serviceProvider.GetRequiredService<MeetingNotesClient>();

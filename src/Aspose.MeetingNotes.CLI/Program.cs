@@ -1,4 +1,4 @@
-using System.CommandLine;
+﻿using System.CommandLine;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -32,16 +32,21 @@ namespace Aspose.MeetingNotes.CLI
             var configOption = new Option<FileInfo>(
                 "--config",
                 "Path to configuration file");
+            var llamaUrlOption = new Option<string>(
+                "--llama-url",
+                () => "http://localhost:8080/v1",
+                "URL of the LLaMA API server");
 
             processCommand.AddOption(fileOption);
             processCommand.AddOption(languageOption);
             processCommand.AddOption(outputOption);
             processCommand.AddOption(configOption);
+            processCommand.AddOption(llamaUrlOption);
 
-            processCommand.SetHandler(async (file, language, output, config) =>
+            processCommand.SetHandler(async (file, language, output, config, llamaUrl) =>
             {
-                await ProcessMeeting(file, language, output, config);
-            }, fileOption, languageOption, outputOption, configOption);
+                await ProcessMeeting(file, language, output, config, llamaUrl);
+            }, fileOption, languageOption, outputOption, configOption, llamaUrlOption);
 
             // Export command
             var exportCommand = new Command("export", "Export meeting notes to different format");
@@ -64,7 +69,7 @@ namespace Aspose.MeetingNotes.CLI
             return await rootCommand.InvokeAsync(args);
         }
 
-        private static async Task ProcessMeeting(FileInfo file, string language, string output, FileInfo? config)
+        private static async Task ProcessMeeting(FileInfo file, string language, string output, FileInfo? config, string llamaUrl)
         {
             try
             {
@@ -79,15 +84,14 @@ namespace Aspose.MeetingNotes.CLI
                 });
 
                 // Configure from file if provided
-                var options = LoadConfiguration(config);
+                var options = LoadConfiguration(config, llamaUrl);
 
                 // Add MeetingNotes services
                 services.AddMeetingNotes(opt =>
                 {
                     opt.Language = language;
-                    opt.AIModelType = options.AIModelType;
-                    opt.AIModelApiKey = options.AIModelApiKey;
-                    opt.WhisperModelSize = options.WhisperModelSize;
+                    opt.CustomAIModel = options.CustomAIModel;
+                    opt.SpeechRecognition = options.SpeechRecognition;
                 });
 
                 var serviceProvider = services.BuildServiceProvider();
@@ -147,22 +151,34 @@ namespace Aspose.MeetingNotes.CLI
             }
         }
 
-        private static MeetingNotesOptions LoadConfiguration(FileInfo? config)
+        private static MeetingNotesOptions LoadConfiguration(FileInfo? config, string llamaUrl)
         {
-            if (config == null || !config.Exists)
+            var options = new MeetingNotesOptions();
+
+            if (config != null && config.Exists)
             {
-                return new MeetingNotesOptions
-                {
-                    AIModelType = AIModelType.ChatGPT,
-                    AIModelApiKey = Environment.GetEnvironmentVariable("MEETINGNOTES_API_KEY") ?? "",
-                    WhisperModelSize = "base"
-                };
+                options = JsonSerializer.Deserialize<MeetingNotesOptions>(
+                    File.ReadAllText(config.FullName)) ?? options;
             }
 
-            var configuration = JsonSerializer.Deserialize<MeetingNotesOptions>(
-                File.ReadAllText(config.FullName));
+            // Configure LLaMA model
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Information);
+            });
 
-            return configuration ?? new MeetingNotesOptions();
+            options.CustomAIModel = new AsposeLlamaModel(
+                llamaUrl,
+                loggerFactory.CreateLogger<AsposeLlamaModel>());
+
+            // Configure speech recognition
+            options.SpeechRecognition = new SpeechRecognitionOptions
+            {
+                ModelSize = "base"
+            };
+
+            return options;
         }
 
         private static ExportFormat ParseExportFormat(string format) => format.ToLower() switch
