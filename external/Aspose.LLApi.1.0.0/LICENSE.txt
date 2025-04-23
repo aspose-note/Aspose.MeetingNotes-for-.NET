@@ -1,0 +1,18 @@
+Aspose.LLApi Proprietary License
+================================
+
+Copyright (c) 2025 Aspose
+
+All rights reserved.
+
+This software and associated documentation ("Software") are proprietary to Aspose and protected under applicable copyright laws.
+
+License Terms:
+--------------
+- You are granted a non-exclusive, non-transferable right to use this Software solely for internal, non-commercial, and evaluation purposes.
+- Redistribution, copying, modification, publication, or distribution (in whole or in part, in any form) of the Software without explicit written consent from Aspose is strictly prohibited.
+- This Software is provided "AS IS," without warranties of any kind, express or implied.
+
+Aspose expressly disclaims any liability arising from use, misuse, modification, or distribution of this Software.
+
+Contact Aspose for licensing inquiries or additional permissions.

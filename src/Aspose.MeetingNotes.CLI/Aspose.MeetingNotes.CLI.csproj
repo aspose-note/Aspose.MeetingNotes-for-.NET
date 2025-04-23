@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <Reference Include="Aspose.LLApi">
-      <HintPath>..\..\external\Aspose.LLApi.1.0.0_last\lib\net8.0\Aspose.LLApi.dll</HintPath>
+      <HintPath>..\..\external\Aspose.LLApi.1.0.0\lib\net8.0\Aspose.LLApi.dll</HintPath>
     </Reference>
   </ItemGroup>
 

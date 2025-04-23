@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>Aspose.LLApi</id>
+    <version>1.0.0</version>
+    <authors>Aspose</authors>
+    <license type="file">LICENSE.txt</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <readme>README.md</readme>
+    <description>.NET client library for advanced interactions with Large Language Model (LLM) servers.</description>
+    <repository type="git" commit="7e5e01c8f8e231e60dfffcc4ac670691b4aa29c1" />
+    <dependencies>
+      <group targetFramework="net8.0" />
+    </dependencies>
+  </metadata>
+</package>
