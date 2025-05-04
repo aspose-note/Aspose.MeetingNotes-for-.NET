@@ -1,33 +1,41 @@
-﻿namespace Aspose.MeetingNotes.Models
+﻿namespace Aspose.MeetingNotes.Models;
+
+/// <summary>
+/// Represents an action item or task identified during a meeting analysis.
+/// Records are suitable here for representing data transfer objects.
+/// </summary>
+public record ActionItem
 {
     /// <summary>
-    /// Represents an action item or task identified during the meeting
+    /// Gets the description of the action item or task.
     /// </summary>
-    public class ActionItem
-    {
-        /// <summary>
-        /// Gets or sets description of the action item
-        /// </summary>
-        public string Description { get; set; } = string.Empty;
+    /// <value>Defaults to an empty string.</value>
+    public string Description { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets person assigned to complete the action item
-        /// </summary>
-        public string? Assignee { get; set; }
+    /// <summary>
+    /// Gets the name or identifier of the person assigned to complete the action item.
+    /// Can be null if unassigned.
+    /// </summary>
+    /// <value>Defaults to "Unassigned".</value>
+    public string Assignee { get; init; } = "Unassigned";
 
-        /// <summary>
-        /// Gets or sets due date for completing the action item
-        /// </summary>
-        public string DueDate { get; set; } = "Not specified";
+    /// <summary>
+    /// Gets the due date for completing the action item, represented as a string.
+    /// Could be a specific date, a relative term (e.g., "Next Friday"), or unspecified.
+    /// </summary>
+    /// <value>Defaults to "Not specified".</value>
+    public string DueDate { get; init; } = "Not specified";
 
-        /// <summary>
-        /// Gets or sets current status of the action item (e.g., "Not Started", "In Progress", "Completed")
-        /// </summary>
-        public string? Status { get; set; }
+    /// <summary>
+    /// Gets the current status of the action item (e.g., "Not Started", "In Progress", "Completed").
+    /// Can be null if status is not determined or applicable.
+    /// </summary>
+    /// <value>Defaults to null.</value>
+    public string? Status { get; init; } = null;
 
-        /// <summary>
-        /// Gets or sets priority of the action item (High, Medium, Low)
-        /// </summary>
-        public string Priority { get; set; } = "Medium";
-    }
+    /// <summary>
+    /// Gets the priority level of the action item (e.g., "High", "Medium", "Low").
+    /// </summary>
+    /// <value>Defaults to "Medium".</value>
+    public string Priority { get; init; } = "Medium";
 }

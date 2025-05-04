@@ -1,18 +1,19 @@
-﻿namespace Aspose.MeetingNotes.Models
+﻿namespace Aspose.MeetingNotes.Models;
+
+/// <summary>
+/// Represents a question and its corresponding answer identified during meeting analysis.
+/// </summary>
+public record QASegment
 {
     /// <summary>
-    /// Represents a question and answer segment from the meeting
+    /// Gets the text of the question asked.
     /// </summary>
-    public class QASegment
-    {
-        /// <summary>
-        /// Gets or sets the question asked during the meeting
-        /// </summary>
-        public string Question { get; set; } = string.Empty;
+    /// <value>Defaults to an empty string.</value>
+    public string Question { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the answer provided during the meeting
-        /// </summary>
-        public string Answer { get; set; } = string.Empty;
-    }
+    /// <summary>
+    /// Gets the text of the answer provided to the question.
+    /// </summary>
+    /// <value>Defaults to an empty string.</value>
+    public string Answer { get; init; } = string.Empty;
 }

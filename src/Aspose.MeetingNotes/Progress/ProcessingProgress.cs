@@ -1,23 +1,26 @@
-﻿namespace Aspose.MeetingNotes.Progress
+﻿namespace Aspose.MeetingNotes.Progress;
+
+/// <summary>
+/// Represents the progress status of a meeting processing operation at a specific point in time.
+/// Instances of this record are typically reported via an <see cref="System.IProgress{T}"/> implementation.
+/// </summary>
+public record ProcessingProgress
 {
     /// <summary>
-    /// Represents the current progress of a processing operation
+    /// Gets the current stage of processing.
     /// </summary>
-    public class ProcessingProgress
-    {
-        /// <summary>
-        /// Gets or sets the current stage of processing
-        /// </summary>
-        public ProcessingStage Stage { get; set; }
+    /// <value>Defaults to <see cref="ProcessingStage.Initial"/>.</value>
+    public ProcessingStage Stage { get; init; } = ProcessingStage.Initial;
 
-        /// <summary>
-        /// Gets or sets the progress percentage (0-100)
-        /// </summary>
-        public int ProgressPercentage { get; set; }
+    /// <summary>
+    /// Gets the overall progress percentage, typically ranging from 0 to 100.
+    /// </summary>
+    /// <value>Defaults to 0.</value>
+    public int ProgressPercentage { get; init; } = 0;
 
-        /// <summary>
-        /// Gets or sets a descriptive message about the current stage
-        /// </summary>
-        public string StatusMessage { get; set; } = string.Empty;
-    }
+    /// <summary>
+    /// Gets a user-friendly message describing the current activity or status within the stage.
+    /// </summary>
+    /// <value>Defaults to an empty string.</value>
+    public string StatusMessage { get; init; } = string.Empty;
 }

@@ -1,55 +1,93 @@
 ﻿using Aspose.MeetingNotes.AIIntegration;
+using Aspose.MeetingNotes.Exceptions;
 using Aspose.MeetingNotes.Models;
+
 using Microsoft.Extensions.Logging;
 
-namespace Aspose.MeetingNotes.ContentAnalysis
+namespace Aspose.MeetingNotes.ContentAnalysis;
+
+/// <summary>
+/// Implements the <see cref="IContentAnalyzer"/> interface using an injected <see cref="IAIModel"/>
+/// to perform content analysis on meeting transcriptions.
+/// </summary>
+public class ContentAnalyzer : IContentAnalyzer
 {
+    private readonly IAIModel aiModel;
+    private readonly ILogger<ContentAnalyzer> logger;
+
     /// <summary>
-    /// Implementation of content analysis operations
+    /// Initializes a new instance of the <see cref="ContentAnalyzer"/> class.
     /// </summary>
-    public class ContentAnalyzer : IContentAnalyzer
+    /// <param name="aiModel">The AI model to use for content analysis.</param>
+    /// <param name="logger">The logger instance for logging analysis operations.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="aiModel"/> or <paramref name="logger"/> is null.</exception>
+    public ContentAnalyzer(IAIModel aiModel, ILogger<ContentAnalyzer> logger)
     {
-        private readonly IAIModel aiModel;
-        private readonly ILogger<ContentAnalyzer> logger;
+        ArgumentNullException.ThrowIfNull(aiModel);
+        ArgumentNullException.ThrowIfNull(logger);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ContentAnalyzer"/> class.
-        /// </summary>
-        /// <param name="aiModel">The AI model to use for content analysis.</param>
-        /// <param name="logger">The logger instance for logging analysis operations.</param>
-        public ContentAnalyzer(IAIModel aiModel, ILogger<ContentAnalyzer> logger)
+        this.aiModel = aiModel;
+        this.logger = logger;
+    }
+
+    /// <inheritdoc/>
+    public async Task<AnalyzedContent> AnalyzeAsync(TranscriptionResult transcription, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(transcription);
+
+        if (!transcription.Success)
         {
-            this.aiModel = aiModel;
-            this.logger = logger;
+            this.logger.LogWarning("Attempting to analyze a transcription that was not successful. Proceeding with available text, but results may be inaccurate");
         }
 
-        /// <summary>
-        /// Analyzes the transcribed content using the configured AI model.
-        /// </summary>
-        /// <param name="transcription">The transcription result to analyze.</param>
-        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
-        /// <returns>A task representing the asynchronous operation. The task result contains the analyzed content.</returns>
-        public async Task<AnalyzedContent> AnalyzeAsync(TranscriptionResult transcription, CancellationToken cancellationToken = default)
+        string textToAnalyze = !string.IsNullOrWhiteSpace(transcription.FullText)
+            ? transcription.FullText
+            : string.Join("\n", transcription.Segments?.Select(s => s.Text) ?? Enumerable.Empty<string>());
+
+        if (string.IsNullOrWhiteSpace(textToAnalyze))
         {
-            logger.LogInformation("Starting content analysis");
-
-            var fullText = string.Join("\n", transcription.Segments.Select(s => s.Text));
-            var aiResult = await aiModel.AnalyzeContentAsync(fullText, cancellationToken);
-
-            logger.LogInformation("Content analysis completed successfully");
-            return aiResult;
+            this.logger.LogWarning("No text content available in the transcription result to analyze");
+            return new AnalyzedContent { TranscribedText = string.Empty };
         }
 
-        /// <summary>
-        /// Generates a concise summary of the analyzed content.
-        /// </summary>
-        /// <param name="content">The analyzed content to summarize.</param>
-        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation.</param>
-        /// <returns>A task representing the asynchronous operation. The task result contains the generated summary.</returns>
-        public async Task<string> GenerateSummaryAsync(AnalyzedContent content, CancellationToken cancellationToken = default)
+        this.logger.LogInformation("Starting content analysis using AI model {ModelType}", this.aiModel.GetType().Name);
+
+        try
         {
-            // Generate a concise summary (max 200 words)
-            return content.Summary;
+            AnalyzedContent analysisResult = await this.aiModel.AnalyzeContentAsync(textToAnalyze, cancellationToken);
+            this.logger.LogInformation("Content analysis completed successfully");
+            return analysisResult;
         }
+        catch (OperationCanceledException)
+        {
+            this.logger.LogWarning("Content analysis was cancelled");
+            throw;
+        }
+        catch (AIModelException ex)
+        {
+            this.logger.LogError(ex, "AI model failed during content analysis");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "An unexpected error occurred during content analysis");
+            throw new AIModelException("An unexpected error occurred during content analysis", ex);
+        }
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// This default implementation simply returns the summary already present in the <see cref="AnalyzedContent"/> object,
+    /// which is typically generated by the <see cref="IAIModel"/> during the <see cref="AnalyzeAsync"/> call.
+    /// No additional AI calls or processing are performed here.
+    /// </remarks>
+    public Task<string> GenerateSummaryAsync(AnalyzedContent content, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        this.logger.LogDebug("Generating summary by retrieving pre-analyzed summary from content object");
+        return Task.FromResult(content.Summary ?? string.Empty);
     }
 }

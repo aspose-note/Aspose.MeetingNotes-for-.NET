@@ -1,365 +1,352 @@
 ﻿using System.Text;
+using System.Text.Json;
+
 using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.Exceptions;
 using Aspose.MeetingNotes.Models;
+
 using LLama;
-using LLama.Abstractions;
 using LLama.Common;
 using LLama.Sampling;
+
 using Microsoft.Extensions.Logging;
 
-namespace Aspose.MeetingNotes.AIIntegration
+namespace Aspose.MeetingNotes.AIIntegration;
+
+/// <summary>
+/// Implementation of <see cref="IAIModel"/> using a local LLama model via the LLamaSharp library.
+/// </summary>
+public class LLamaModel : IAIModel, IDisposable // Implement IDisposable for model resources
 {
+    // Constants for prompts
+    private const string AnalyzeContentPromptFormat = @"Analyze the following meeting transcript and provide:
+1. A brief summary (max 200 words)
+2. Key discussion points (up to 5)
+3. Main decisions made
+4. Questions and answers identified
+5. Important topics covered
+
+Format the response strictly as a JSON object with the following structure:
+{{
+    ""summary"": ""string"",
+    ""keyPoints"": [""string""],
+    ""decisions"": [""string""],
+    ""qaSegments"": [{{""question"": ""string"", ""answer"": ""string""}}],
+    ""topics"": [""string""]
+}}
+
+IMPORTANT: Respond *only* with the valid JSON object, without any surrounding text or formatting.
+
+Meeting transcript:
+{0}";
+
+    private const string ExtractActionItemsPromptFormat = @"Extract action items from the following meeting transcript. Look for:
+- Tasks that need to be done
+- Assignments to specific people
+- Deadlines or due dates
+- Priority indicators
+
+Format the response strictly as a JSON array of objects with the following structure:
+[{{
+    ""description"": ""string"",
+    ""assignee"": ""string"",
+    ""dueDate"": ""string"",
+    ""priority"": ""string""
+}}]
+
+For each action item:
+- description: Clear description of what needs to be done
+- assignee: Name of person assigned (or ""Unassigned"")
+- dueDate: Due date if mentioned (or ""Not specified"")
+- priority: High/Medium/Low based on context (default to ""Medium"")
+
+IMPORTANT: Respond *only* with the valid JSON array, without any surrounding text or formatting.
+
+Meeting transcript:
+{0}";
+
+    private readonly LLamaOptions llamaOptions;
+    private readonly ILogger<LLamaModel> logger;
+    private readonly LLamaWeights model;
+    private readonly LLamaContext context;
+    private readonly ChatSession session;
+    private readonly JsonSerializerOptions jsonSerializerOptions;
+    private bool disposedValue;
+
     /// <summary>
-    /// Implementation of AI model integration using LLama
+    /// Initializes a new instance of the <see cref="LLamaModel"/> class.
+    /// Loads the LLama model and sets up the execution context.
     /// </summary>
-    public class LLamaModel : IAIModel
+    /// <param name="options">The meeting notes options containing configuration for the AI model.</param>
+    /// <param name="logger">The logger instance for logging operations.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="options"/> or <paramref name="logger"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if the AI model options are not <see cref="LLamaOptions"/>, or if the model path is missing.</exception>
+    /// <exception cref="FileNotFoundException">Thrown if the LLama model file specified in options cannot be found.</exception>
+    /// <exception cref="AIModelException">Thrown if there is an error loading the LLama model or context.</exception>
+    public LLamaModel(MeetingNotesOptions options, ILogger<LLamaModel> logger)
     {
-        private readonly LLamaOptions llamaOptions;
-        private readonly ILogger<LLamaModel> logger;
-        private readonly LLamaWeights model;
-        private readonly LLamaContext context;
-        private readonly InteractiveExecutor executor;
-        private readonly ChatSession session;
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="LLamaModel"/> class.
-        /// </summary>
-        /// <param name="options">Configuration options for the AI model.</param>
-        /// <param name="logger">Logger instance for logging operations.</param>
-        public LLamaModel(MeetingNotesOptions options, ILogger<LLamaModel> logger)
+        if (options.AIModel is not LLamaOptions specificOptions)
         {
-            this.llamaOptions = (LLamaOptions)options.AIModel;
-            this.logger = logger;
+            throw new ArgumentException($"Configuration error: AIModel options must be of type {nameof(LLamaOptions)} for {nameof(LLamaModel)}.", nameof(options));
+        }
 
-            if (string.IsNullOrEmpty(this.llamaOptions.ModelPath))
-            {
-                throw new ArgumentException("LLama model path is required", nameof(options));
-            }
+        if (string.IsNullOrWhiteSpace(specificOptions.ModelPath))
+        {
+            throw new ArgumentException("LLama model path is required in LLamaOptions and cannot be empty.", nameof(options));
+        }
 
+        if (!File.Exists(specificOptions.ModelPath))
+        {
+            throw new FileNotFoundException("LLama model file not found at the specified path.", specificOptions.ModelPath);
+        }
+
+        this.llamaOptions = specificOptions;
+        this.logger = logger;
+
+        this.logger.LogInformation("Initializing LLama model from path: {ModelPath}", this.llamaOptions.ModelPath);
+
+        try
+        {
             var parameters = new ModelParams(this.llamaOptions.ModelPath)
             {
-                GpuLayerCount = this.llamaOptions.GpuLayerCount,
-                ContextSize = this.llamaOptions.ContextSize
+                ContextSize = this.llamaOptions.ContextSize ?? 4096,
+                // GpuLayerCount seems obsolete in newer LLamaSharp, check documentation for current GPU offloading options if needed.
+                // Example for potential new way (check LLamaSharp docs):
+                // MainGpu = 0, // Specify main GPU index
+                // TensorSplits = null, // Configure tensor splitting if needed
             };
 
-            model = LLamaWeights.LoadFromFile(parameters);
-            context = model.CreateContext(parameters);
-            executor = new InteractiveExecutor(context);
-            session = new ChatSession(executor);
+            this.model = LLamaWeights.LoadFromFile(parameters);
+            this.context = this.model.CreateContext(parameters);
 
-            // Configure session
-            session.WithHistoryTransform(new LLama2HistoryTransformer());
-            session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(
-                ["User:", "Assistant:"],
-                redundancyLength: 5));
+            // Use StatefulExecutor or ChatSession based on interaction style
+            // ChatSession manages history automatically
+            var executor = new StatelessExecutor(this.model, parameters); // Or InteractiveExecutor if preferred
+            this.session = new ChatSession(executor); // Use ChatSession for simplicity
+
+            // Configure output filtering (optional, helps clean up model self-correction/role prefixes)
+            this.session.WithOutputTransform(new LLamaTransforms.KeywordTextOutputStreamTransform(["User:", "Assistant:"], redundancyLength: 8));
+
+            this.logger.LogInformation("LLama model and context initialized successfully");
         }
-
-        /// <summary>
-        /// Analyzes the provided text content using the LLama model
-        /// </summary>
-        /// <param name="text">The text content to analyze</param>
-        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation</param>
-        /// <returns>An AnalyzedContent containing the analysis results</returns>
-        /// <exception cref="AIModelException">Thrown when there is an error during the analysis</exception>
-        public async Task<AnalyzedContent> AnalyzeContentAsync(string text, CancellationToken cancellationToken = default)
+        catch (Exception ex)
         {
-            try
-            {
-                logger.LogInformation("Starting LLama content analysis");
-
-                var prompt = $@"Analyze the following meeting transcript and provide:
-1. A concise summary (max 200 words)
-2. Key points discussed
-3. Main topics covered
-4. Any questions and answers
-
-Transcript:
-{text}
-
-Please format your response as follows:
-Summary: [your summary]
-Key Points:
-- [point 1]
-- [point 2]
-...
-Topics:
-- [topic 1]
-- [topic 2]
-...
-Q&A:
-- Q: [question]
-  A: [answer]
-...";
-
-                var inferenceParams = new InferenceParams
-                {
-                    SamplingPipeline = new DefaultSamplingPipeline
-                    {
-                        Temperature = this.llamaOptions.Temperature
-                    },
-                    MaxTokens = -1,
-                    AntiPrompts = ["User:"]
-                };
-
-                var response = new StringBuilder();
-                await foreach (var textChunk in session.ChatAsync(
-                    new ChatHistory.Message(AuthorRole.User, prompt),
-                    inferenceParams))
-                {
-                    response.Append(textChunk);
-                }
-
-                var result = ParseAnalysisResponse(response.ToString());
-                result.TranscribedText = text;
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error during LLama content analysis");
-                throw new AIModelException("Failed to analyze content with LLama", ex);
-            }
+            this.logger.LogCritical(ex, "Failed to load LLama model or create context from path: {ModelPath}", this.llamaOptions.ModelPath);
+            // Clean up partially initialized resources if possible (model might need disposal)
+            this.model?.Dispose(); // Dispose model if it was loaded before context creation failed
+            throw new AIModelException($"Failed to initialize LLama model from '{this.llamaOptions.ModelPath}'", ex);
         }
 
-        /// <summary>
-        /// Extracts action items from the provided text using the LLama model
-        /// </summary>
-        /// <param name="text">The text content to extract action items from</param>
-        /// <param name="cancellationToken">A cancellation token that can be used to cancel the operation</param>
-        /// <returns>A list of extracted action items</returns>
-        /// <exception cref="AIModelException">Thrown when there is an error during action item extraction</exception>
-        public async Task<List<ActionItem>> ExtractActionItemsAsync(string text, CancellationToken cancellationToken = default)
+        // Setup JsonSerializerOptions
+        this.jsonSerializerOptions = new JsonSerializerOptions {
+            PropertyNameCaseInsensitive = true,
+            AllowTrailingCommas = true,
+        };
+    }
+
+    /// <inheritdoc/>
+    public async Task<AnalyzedContent> AnalyzeContentAsync(string text, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(text);
+
+        string prompt = string.Format(AnalyzeContentPromptFormat, text);
+        var inferenceParams = new InferenceParams()
         {
-            try
-            {
-                logger.LogInformation("Extracting action items using LLama");
+            MaxTokens = -1,
+            AntiPrompts = ["User:", "\n"],
+            SamplingPipeline = new DefaultSamplingPipeline { Temperature = this.llamaOptions.Temperature }
+        };
 
-                var prompt = $@"Extract action items from the following meeting transcript. For each action item, identify:
-1. Description of the task
-2. Assignee (if mentioned)
-3. Due date (if mentioned)
-4. Status (default to 'New')
-
-Format your response as a JSON array of objects with the following structure:
-[
-    {{
-        ""Description"": ""task description"",
-        ""Assignee"": ""person name"",
-        ""DueDate"": ""YYYY-MM-DD"",
-        ""Status"": ""New""
-    }}
-]
-
-Transcript:
-{text}";
-
-                var inferenceParams = new InferenceParams
-                {
-                    SamplingPipeline = new DefaultSamplingPipeline
-                    {
-                        Temperature = this.llamaOptions.Temperature
-                    },
-                    MaxTokens = -1,
-                    AntiPrompts = ["User:"]
-                };
-
-                var response = new StringBuilder();
-                await foreach (var textChunk in session.ChatAsync(
-                    new ChatHistory.Message(AuthorRole.User, prompt),
-                    inferenceParams))
-                {
-                    response.Append(textChunk);
-                }
-
-                return ParseActionItemsResponse(response.ToString());
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error during LLama action item extraction");
-                throw new AIModelException("Failed to extract action items with LLama", ex);
-            }
-        }
-
-        private static AnalyzedContent ParseAnalysisResponse(string response)
+        try
         {
-            var result = new AnalyzedContent();
-            var lines = response.Split('\n');
+            this.logger.LogInformation("Sending content analysis request to LLama model");
+            string responseContent = await this.InferAsync(prompt, inferenceParams, cancellationToken);
+            this.logger.LogDebug("Raw AI response for analysis: {Response}", responseContent);
 
-            var currentSection = string.Empty;
-            foreach (var line in lines)
+            // Attempt to deserialize directly, assuming model follows instructions
+            var initialResult = JsonSerializer.Deserialize<AnalyzedContent>(responseContent, this.jsonSerializerOptions);
+
+            if (initialResult == null)
             {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                if (line.StartsWith("Summary:"))
-                {
-                    currentSection = "Summary";
-                    result.Summary = line.Replace("Summary:", string.Empty).Trim();
-                }
-                else if (line.StartsWith("Key Points:"))
-                {
-                    currentSection = "KeyPoints";
-                }
-                else if (line.StartsWith("Topics:"))
-                {
-                    currentSection = "Topics";
-                }
-                else if (line.StartsWith("Q&A:"))
-                {
-                    currentSection = "Q&A";
-                }
-                else if (line.StartsWith("-"))
-                {
-                    var content = line.TrimStart('-').Trim();
-                    switch (currentSection)
-                    {
-                        case "KeyPoints":
-                            result.KeyPoints.Add(content);
-                            break;
-                        case "Topics":
-                            result.Topics.Add(content);
-                            break;
-                        case "Q&A":
-                            if (content.StartsWith("Q:"))
-                            {
-                                result.QASegments.Add(new QASegment
-                                {
-                                    Question = content.Replace("Q:", string.Empty).Trim()
-                                });
-                            }
-                            else if (content.StartsWith("A:"))
-                            {
-                                if (result.QASegments.Any())
-                                {
-                                    result.QASegments.Last().Answer = content.Replace("A:", string.Empty).Trim();
-                                }
-                            }
-                            break;
-                    }
-                }
+                this.logger.LogError("Failed to deserialize LLama analysis response to AnalyzedContent. Response: {Response}", responseContent);
+                throw new AIModelException("Failed to parse AI response for content analysis. Response was empty or invalid JSON");
             }
 
-            return result;
-        }
+            this.logger.LogInformation("Successfully parsed LLama analysis response. Post-processing results...");
 
-        private static List<ActionItem> ParseActionItemsResponse(string response)
+            // Create a new record instance using a 'with' expression, applying cleaning logic
+            AnalyzedContent finalResult = initialResult with {
+                Summary = initialResult.Summary?.Trim() ?? string.Empty,
+                KeyPoints = initialResult.KeyPoints?
+                               .Where(p => !string.IsNullOrWhiteSpace(p))
+                               .Select(p => p.Trim())
+                               .ToList() ?? [],
+                Decisions = initialResult.Decisions?
+                               .Where(d => !string.IsNullOrWhiteSpace(d))
+                               .Select(d => d.Trim())
+                               .ToList() ?? [],
+                Topics = initialResult.Topics?
+                              .Where(t => !string.IsNullOrWhiteSpace(t))
+                              .Select(t => t.Trim())
+                              .ToList() ?? [],
+                QASegments = initialResult.QASegments?
+                                .Where(qa => qa != null && !string.IsNullOrWhiteSpace(qa.Question) && !string.IsNullOrWhiteSpace(qa.Answer))
+                                .Select(qa => qa with { Question = qa.Question.Trim(), Answer = qa.Answer.Trim() })
+                                .ToList() ?? [],
+                TranscribedText = text
+            };
+
+            return finalResult;
+        }
+        catch (JsonException jsonEx)
         {
-            try
-            {
-                // Try to parse as JSON first
-                var jsonStart = response.IndexOf('[');
-                var jsonEnd = response.LastIndexOf(']');
-                if (jsonStart >= 0 && jsonEnd > jsonStart)
-                {
-                    var json = response.Substring(jsonStart, jsonEnd - jsonStart + 1);
-                    return System.Text.Json.JsonSerializer.Deserialize<List<ActionItem>>(json) ?? new List<ActionItem>();
-                }
-
-                // Fallback to text parsing
-                return ParseActionItemsFromText(response);
-            }
-            catch (Exception)
-            {
-                return ParseActionItemsFromText(response);
-            }
+            this.logger.LogError(jsonEx, "Failed to deserialize JSON response from LLama during content analysis");
+            throw new AIModelException("Failed to parse JSON response from LLama for content analysis", jsonEx);
         }
-
-        private static List<ActionItem> ParseActionItemsFromText(string response)
+        catch (Exception ex) when (ex is not OperationCanceledException and not AIModelException)
         {
-            var actionItems = new List<ActionItem>();
-            var lines = response.Split('\n');
-
-            ActionItem? currentItem = null;
-            foreach (var line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                if (line.StartsWith("Description:"))
-                {
-                    if (currentItem != null)
-                    {
-                        actionItems.Add(currentItem);
-                    }
-                    currentItem = new ActionItem
-                    {
-                        Description = line.Replace("Description:", string.Empty).Trim(),
-                        Status = "New"
-                    };
-                }
-                else if (currentItem != null)
-                {
-                    if (line.StartsWith("Assignee:"))
-                    {
-                        currentItem.Assignee = line.Replace("Assignee:", string.Empty).Trim();
-                    }
-                    else if (line.StartsWith("DueDate:"))
-                    {
-                        currentItem.DueDate = line.Replace("DueDate:", string.Empty).Trim();
-                    }
-                }
-            }
-
-            if (currentItem != null)
-            {
-                actionItems.Add(currentItem);
-            }
-
-            return actionItems;
+            this.logger.LogError(ex, "An unexpected error occurred during LLama content analysis");
+            throw new AIModelException("An unexpected error occurred during LLama content analysis", ex);
         }
+    }
 
-        /// <summary>
-        /// Chat History transformer for LLama 2 family
-        /// </summary>
-        private class LLama2HistoryTransformer : IHistoryTransform
+    /// <inheritdoc/>
+    public async Task<List<ActionItem>> ExtractActionItemsAsync(string text, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(text);
+
+        string prompt = string.Format(ExtractActionItemsPromptFormat, text);
+        var inferenceParams = new InferenceParams()
         {
-            public string Name => "LLama2";
+            MaxTokens = -1,
+            AntiPrompts = ["User:", "\n"],
+            SamplingPipeline = new DefaultSamplingPipeline { Temperature = this.llamaOptions.Temperature }
+        };
 
-            public IHistoryTransform Clone()
+        try
+        {
+            this.logger.LogInformation("Sending action item extraction request to LLama model");
+            string responseContent = await this.InferAsync(prompt, inferenceParams, cancellationToken);
+
+            this.logger.LogDebug("Raw AI response for action items: {Response}", responseContent);
+
+            // Attempt to deserialize directly
+            var result = JsonSerializer.Deserialize<List<ActionItem>>(responseContent, this.jsonSerializerOptions);
+
+            if (result == null)
             {
-                return new LLama2HistoryTransformer();
+                this.logger.LogWarning("LLama response for action items was null or empty JSON array. Assuming no action items found. Response: {Response}", responseContent);
+                return [];
             }
 
-            public string HistoryToText(ChatHistory history)
-            {
-                if (history.Messages.Count == 0)
-                    return string.Empty;
+            this.logger.LogInformation("Successfully parsed LLama action items response. Found initially {Count} items", result.Count);
 
-                var builder = new StringBuilder(64 * history.Messages.Count);
-
-                int i = 0;
-                if (history.Messages[i].AuthorRole == AuthorRole.System)
-                {
-                    builder.Append($"[INST] <<SYS>>\n").Append(history.Messages[0].Content.Trim()).Append("\n<</SYS>>\n");
-                    i++;
-
-                    if (history.Messages.Count > 1)
-                    {
-                        builder.Append(history.Messages[1].Content.Trim()).Append(" [/INST]");
-                        i++;
-                    }
-                }
-
-                for (; i < history.Messages.Count; i++)
-                {
-                    if (history.Messages[i].AuthorRole == AuthorRole.User)
-                    {
-                        builder.Append(i == 0 ? "[INST] " : "<s>[INST] ").Append(history.Messages[i].Content.Trim()).Append(" [/INST]");
-                    }
-                    else
-                    {
-                        builder.Append(' ').Append(history.Messages[i].Content.Trim()).Append(" </s>");
-                    }
-                }
-
-                return builder.ToString();
-            }
-
-            public ChatHistory TextToHistory(AuthorRole role, string text)
-            {
-                return new ChatHistory([new ChatHistory.Message(role, text)]);
-            }
+            // Clean up and validate action items
+            return result
+                .Where(item => !string.IsNullOrWhiteSpace(item.Description))
+                .Select(item => new ActionItem {
+                    Description = item.Description.Trim(),
+                    Assignee = string.IsNullOrWhiteSpace(item.Assignee) ? "Unassigned" : item.Assignee.Trim(),
+                    DueDate = string.IsNullOrWhiteSpace(item.DueDate) ? "Not specified" : item.DueDate.Trim(),
+                    Priority = ValidatePriority(item.Priority)
+                })
+                .ToList();
         }
+        catch (JsonException jsonEx)
+        {
+            this.logger.LogError(jsonEx, "Failed to deserialize JSON response from LLama during action item extraction");
+            throw new AIModelException("Failed to parse JSON response from LLama for action item extraction", jsonEx);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException and not AIModelException)
+        {
+            this.logger.LogError(ex, "An unexpected error occurred during LLama action item extraction");
+            throw new AIModelException("An unexpected error occurred during LLama action item extraction", ex);
+        }
+    }
+
+    /// <summary>
+    /// Performs inference using the configured LLama session.
+    /// </summary>
+    /// <param name="prompt">The input prompt.</param>
+    /// <param name="inferenceParams">Inference parameters.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The generated text response.</returns>
+    private async Task<string> InferAsync(string prompt, InferenceParams inferenceParams, CancellationToken cancellationToken)
+    {
+        var responseBuilder = new StringBuilder();
+
+        // Use ChatAsync which handles history automatically
+        await foreach (var textChunk in this.session.ChatAsync(
+            new ChatHistory.Message(AuthorRole.User, prompt), // Add prompt as user message
+            inferenceParams,
+            cancellationToken))
+        {
+            responseBuilder.Append(textChunk);
+        }
+        return responseBuilder.ToString().Trim(); // Trim final whitespace
+    }
+
+    /// <summary>
+    /// Validates and normalizes the priority string.
+    /// </summary>
+    /// <param name="priority">The input priority string.</param>
+    /// <returns>A normalized priority ("High", "Medium", "Low"). Defaults to "Medium".</returns>
+    private static string ValidatePriority(string? priority)
+    {
+        if (string.IsNullOrWhiteSpace(priority))
+        {
+            return "Medium";
+        }
+
+        return priority.Trim().ToLowerInvariant() switch {
+            "high" => "High",
+            "medium" => "Medium",
+            "low" => "Low",
+            _ => "Medium"
+        };
+    }
+
+    // --- IDisposable Implementation ---
+
+    /// <summary>
+    /// Releases the unmanaged resources used by the LLamaModel, specifically the loaded model weights and context.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!this.disposedValue)
+        {
+            if (disposing)
+            {
+                // Dispose managed state (managed objects).
+                this.logger.LogDebug("Disposing LLamaContext");
+                this.context?.Dispose(); // Dispose context first
+                this.logger.LogDebug("Disposing LLamaWeights");
+                this.model?.Dispose(); // Then dispose model weights
+                // Note: ChatSession and Executor might not need explicit disposal if they don't own resources beyond context/model
+            }
+
+            // Free unmanaged resources (unmanaged objects) and override finalizer (none here)
+            // Set large fields to null
+            this.disposedValue = true;
+            this.logger.LogInformation("LLamaModel disposed");
+        }
+    }
+
+    // Uncomment if a finalizer (~LLamaModel()) is needed, which is generally only if you directly handle unmanaged resources.
+    // LLamaSharp handles its own unmanaged resources via its Dispose methods.
+    // ~LLamaModel()
+    // {
+    //     Dispose(disposing: false);
+    // }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

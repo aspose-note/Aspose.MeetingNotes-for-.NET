@@ -1,18 +1,17 @@
-﻿namespace Aspose.MeetingNotes.Configuration
+﻿namespace Aspose.MeetingNotes.Configuration;
+
+/// <summary>
+/// Defines the available built-in AI model types that can be used for content analysis and action item extraction.
+/// </summary>
+public enum AIModelType
 {
     /// <summary>
-    /// Defines the available AI model types for content analysis.
+    /// Represents OpenAI's ChatGPT model service. Requires <see cref="ChatGPTOptions"/>.
     /// </summary>
-    public enum AIModelType
-    {
-        /// <summary>
-        /// OpenAI's ChatGPT model.
-        /// </summary>
-        ChatGPT,
+    ChatGPT,
 
-        /// <summary>
-        /// LLama 2 model.
-        /// </summary>
-        LLama
-    }
+    /// <summary>
+    /// Represents a local LLama model accessed via LLamaSharp. Requires <see cref="LLamaOptions"/>.
+    /// </summary>
+    LLama
 }

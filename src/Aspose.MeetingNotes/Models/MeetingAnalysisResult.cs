@@ -1,38 +1,45 @@
-﻿namespace Aspose.MeetingNotes.Models
+﻿namespace Aspose.MeetingNotes.Models;
+
+/// <summary>
+/// Represents the complete result of processing and analyzing a meeting recording.
+/// Includes the analyzed content, extracted action items, status, and detected language.
+/// </summary>
+public record MeetingAnalysisResult
 {
     /// <summary>
-    /// Represents the complete result of meeting analysis
+    /// Gets the analyzed content of the meeting, including summary, sections, etc.
     /// </summary>
-    public class MeetingAnalysisResult
-    {
-        /// <summary>
-        /// Gets or sets the analyzed content of the meeting
-        /// </summary>
-        public AnalyzedContent Content { get; set; } = new ();
+    /// <value>Defaults to a new instance of <see cref="AnalyzedContent"/>.</value>
+    public AnalyzedContent Content { get; init; } = new ();
 
-        /// <summary>
-        /// Gets or sets the list of action items extracted from the meeting
-        /// </summary>
-        public List<ActionItem> ActionItems { get; set; } = new ();
+    /// <summary>
+    /// Gets the list of action items extracted from the meeting.
+    /// </summary>
+    /// <value>Defaults to an empty list.</value>
+    public List<ActionItem> ActionItems { get; init; } = [];
 
-        /// <summary>
-        /// Gets or sets the detected language of the meeting
-        /// </summary>
-        public string Language { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets the detected or specified language of the meeting audio (e.g., "en", "ru").
+    /// </summary>
+    /// <value>Defaults to an empty string.</value>
+    public string Language { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets the complete transcribed text without any analysis or structuring
-        /// </summary>
-        public string TranscribedText { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets the complete original transcribed text without analysis or structuring.
+    /// Included for reference or alternative processing.
+    /// </summary>
+    /// <value>Defaults to an empty string.</value>
+    public string TranscribedText { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets a value indicating whether indicates whether the analysis was successful
-        /// </summary>
-        public bool Success { get; set; }
+    /// <summary>
+    /// Gets a value indicating whether the overall analysis process was successful.
+    /// If false, check the <see cref="ErrorMessage"/> property.
+    /// </summary>
+    public bool Success { get; init; } = false;
 
-        /// <summary>
-        /// Gets or sets error message if the analysis failed
-        /// </summary>
-        public string ErrorMessage { get; set; } = string.Empty;
-    }
+    /// <summary>
+    /// Gets the error message if the analysis process failed (<see cref="Success"/> is false).
+    /// </summary>
+    /// <value>Defaults to an empty string.</value>
+    public string ErrorMessage { get; init; } = string.Empty;
 }

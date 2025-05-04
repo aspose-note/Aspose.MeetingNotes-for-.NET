@@ -1,27 +1,37 @@
-﻿namespace Aspose.MeetingNotes.Exceptions
+﻿namespace Aspose.MeetingNotes.Exceptions;
+
+/// <summary>
+/// Represents the base class for exceptions specific to the Aspose.MeetingNotes library operations.
+/// </summary>
+public class MeetingNotesException : Exception
 {
     /// <summary>
-    /// Base exception for all MeetingNotes errors
+    /// Initializes a new instance of the <see cref="MeetingNotesException"/> class.
     /// </summary>
-    public class MeetingNotesException : Exception
+    public MeetingNotesException()
+        : base()
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MeetingNotesException"/> class with a specified error message.
-        /// </summary>
-        /// <param name="message">The message that describes the error</param>
-        public MeetingNotesException(string message)
-            : base(message)
-        {
-        }
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MeetingNotesException"/> class with a specified error message and a reference to the inner exception that is the cause of this exception.
-        /// </summary>
-        /// <param name="message">The message that describes the error</param>
-        /// <param name="inner">The exception that is the cause of the current exception</param>
-        public MeetingNotesException(string message, Exception inner)
-            : base(message, inner)
-        {
-        }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MeetingNotesException"/> class
+    /// with a specified error message.
+    /// </summary>
+    /// <param name="message">The message that describes the error.</param>
+    public MeetingNotesException(string message)
+        : base(message)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MeetingNotesException"/> class
+    /// with a specified error message and a reference to the inner exception that is
+    /// the cause of this exception.
+    /// </summary>
+    /// <param name="message">The error message that explains the reason for the exception.</param>
+    /// <param name="innerException">The exception that is the cause of the current exception, or a null reference if no inner exception is specified.</param>
+    public MeetingNotesException(string message, Exception innerException)
+        : base(message, innerException)
+    {
     }
 }

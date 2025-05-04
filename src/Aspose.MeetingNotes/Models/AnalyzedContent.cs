@@ -1,43 +1,50 @@
-﻿namespace Aspose.MeetingNotes.Models
+﻿namespace Aspose.MeetingNotes.Models;
+
+/// <summary>
+/// Represents the structured results of analyzing meeting content,
+/// including summaries, key points, decisions, topics, Q&A, and section details.
+/// </summary>
+public record AnalyzedContent
 {
     /// <summary>
-    /// Represents analyzed content from a meeting with structured sections and metadata
+    /// Gets a brief summary of the meeting content.
     /// </summary>
-    public class AnalyzedContent
-    {
-        /// <summary>
-        /// Gets or sets brief summary of the meeting content (max 200 words)
-        /// </summary>
-        public string Summary { get; set; } = string.Empty;
+    /// <value>Defaults to an empty string.</value>
+    public string Summary { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets structured sections of the meeting content
-        /// </summary>
-        public List<ContentSection> Sections { get; set; } = new ();
+    /// <summary>
+    /// Gets the structured sections identified within the meeting content.
+    /// </summary>
+    /// <value>Defaults to an empty list.</value>
+    public List<ContentSection> Sections { get; init; } = [];
 
-        /// <summary>
-        /// Gets or sets key points extracted from the meeting
-        /// </summary>
-        public List<string> KeyPoints { get; set; } = new ();
+    /// <summary>
+    /// Gets the key discussion points extracted from the meeting.
+    /// </summary>
+    /// <value>Defaults to an empty list.</value>
+    public List<string> KeyPoints { get; init; } = [];
 
-        /// <summary>
-        /// Gets or sets decisions made during the meeting
-        /// </summary>
-        public List<string> Decisions { get; set; } = new ();
+    /// <summary>
+    /// Gets the main decisions recorded during the meeting.
+    /// </summary>
+    /// <value>Defaults to an empty list.</value>
+    public List<string> Decisions { get; init; } = [];
 
-        /// <summary>
-        /// Gets or sets topics discussed during the meeting
-        /// </summary>
-        public List<string> Topics { get; set; } = new ();
+    /// <summary>
+    /// Gets the primary topics discussed during the meeting.
+    /// </summary>
+    /// <value>Defaults to an empty list.</value>
+    public List<string> Topics { get; init; } = [];
 
-        /// <summary>
-        /// Gets or sets questions and answers identified in the meeting
-        /// </summary>
-        public List<QASegment> QASegments { get; set; } = new ();
+    /// <summary>
+    /// Gets the questions and corresponding answers identified in the meeting.
+    /// </summary>
+    /// <value>Defaults to an empty list.</value>
+    public List<QASegment> QASegments { get; init; } = [];
 
-        /// <summary>
-        /// Gets or sets the complete transcribed text without any analysis or structuring
-        /// </summary>
-        public string TranscribedText { get; set; } = string.Empty;
-    }
+    /// <summary>
+    /// Gets the complete original transcribed text that was analyzed.
+    /// </summary>
+    /// <value>Defaults to an empty string.</value>
+    public string TranscribedText { get; init; } = string.Empty;
 }

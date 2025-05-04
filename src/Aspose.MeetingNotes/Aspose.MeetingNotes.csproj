@@ -38,4 +38,8 @@
     <PackageReference Include="Whisper.net.Runtime" Version="1.8.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\FFmpeg.NET\src\FFmpeg.NET\FFmpeg.NET.csproj" />
+  </ItemGroup>
+
 </Project> 

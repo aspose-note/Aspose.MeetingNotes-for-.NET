@@ -1,0 +1,3 @@
+[submodule "libs/FFmpeg.NET"]
+	path = libs/FFmpeg.NET
+	url = https://github.com/TobiasFaller/FFmpeg.NET.git

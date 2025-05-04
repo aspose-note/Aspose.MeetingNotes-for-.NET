@@ -1,28 +1,33 @@
-﻿namespace Aspose.MeetingNotes.Models
+﻿namespace Aspose.MeetingNotes.Models;
+
+/// <summary>
+/// Represents a segment of transcribed text, potentially associated with a specific speaker
+/// and time range within the original audio.
+/// </summary>
+public record TranscriptionSegment
 {
     /// <summary>
-    /// Represents a segment of transcribed text with speaker and timing information
+    /// Gets the identifier or name of the speaker attributed to this text segment.
+    /// May be "Unknown" or a generic ID if speaker diarization is not performed or fails.
     /// </summary>
-    public class TranscriptionSegment
-    {
-        /// <summary>
-        /// Gets or sets identifier of the speaker who spoke this segment
-        /// </summary>
-        public string Speaker { get; set; } = string.Empty;
+    /// <value>Defaults to "Unknown".</value>
+    public string Speaker { get; init; } = "Unknown";
 
-        /// <summary>
-        /// Gets or sets the transcribed text content
-        /// </summary>
-        public string Text { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets the transcribed text content of this segment.
+    /// </summary>
+    /// <value>Defaults to an empty string.</value>
+    public string Text { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets start time of the segment in the audio
-        /// </summary>
-        public TimeSpan StartTime { get; set; }
+    /// <summary>
+    /// Gets the start time of this segment within the original audio.
+    /// </summary>
+    /// <value>Defaults to <see cref="TimeSpan.Zero"/>.</value>
+    public TimeSpan StartTime { get; init; } = TimeSpan.Zero;
 
-        /// <summary>
-        /// Gets or sets end time of the segment in the audio
-        /// </summary>
-        public TimeSpan EndTime { get; set; }
-    }
+    /// <summary>
+    /// Gets the end time of this segment within the original audio.
+    /// </summary>
+    /// <value>Defaults to <see cref="TimeSpan.Zero"/>.</value>
+    public TimeSpan EndTime { get; init; } = TimeSpan.Zero;
 }

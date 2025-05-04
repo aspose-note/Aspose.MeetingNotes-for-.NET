@@ -1,33 +1,38 @@
-namespace Aspose.MeetingNotes.Models
+﻿namespace Aspose.MeetingNotes.Models;
+
+/// <summary>
+/// Represents the result of a speech-to-text transcription operation,
+/// including segmented text, detected language, and status.
+/// </summary>
+public record TranscriptionResult
 {
     /// <summary>
-    /// Represents the result of speech-to-text transcription with speaker diarization
+    /// Gets the list of transcribed text segments, potentially including speaker and timing information.
     /// </summary>
-    public class TranscriptionResult
-    {
-        /// <summary>
-        /// Gets or sets list of transcribed segments with speaker identification
-        /// </summary>
-        public List<TranscriptionSegment> Segments { get; set; } = new ();
+    /// <value>Defaults to an empty list.</value>
+    public List<TranscriptionSegment> Segments { get; init; } = [];
 
-        /// <summary>
-        /// Gets or sets language code of the transcribed content (e.g., "en", "ru")
-        /// </summary>
-        public string Language { get; set; } = string.Empty;
+    /// <summary>
+    /// Gets the language code detected or used during transcription (e.g., "en", "ru").
+    /// </summary>
+    /// <value>Defaults to an empty string.</value>
+    public string Language { get; init; } = string.Empty;
 
-        /// <summary>
-        /// Gets or sets a value indicating whether indicates whether the transcription was successful
-        /// </summary>
-        public bool Success { get; set; }
+    /// <summary>
+    /// Gets a value indicating whether the transcription process completed successfully.
+    /// If false, check the <see cref="ErrorMessage"/> property.
+    /// </summary>
+    public bool Success { get; init; } = false;
 
-        /// <summary>
-        /// Gets or sets error message if the transcription failed
-        /// </summary>
-        public string? ErrorMessage { get; set; }
+    /// <summary>
+    /// Gets the error message if the transcription failed (<see cref="Success"/> is false).
+    /// </summary>
+    /// <value>Defaults to null.</value>
+    public string? ErrorMessage { get; init; } = null;
 
-        /// <summary>
-        /// Gets or sets the complete transcribed text without segmentation
-        /// </summary>
-        public string FullText { get; set; } = string.Empty;
-    }
+    /// <summary>
+    /// Gets the complete transcribed text concatenated from all segments, without detailed timing or speaker info.
+    /// </summary>
+    /// <value>Defaults to an empty string.</value>
+    public string FullText { get; init; } = string.Empty;
 }

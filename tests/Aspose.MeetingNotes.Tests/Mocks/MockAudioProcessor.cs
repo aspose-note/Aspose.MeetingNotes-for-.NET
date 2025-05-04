@@ -1,78 +1,54 @@
 using Aspose.MeetingNotes.AudioProcessing;
-using Aspose.MeetingNotes.Models;
 using Microsoft.Extensions.Logging;
 
-namespace Aspose.MeetingNotes.Tests.Mocks
+namespace Aspose.MeetingNotes.Tests.Mocks;
+
+/// <summary>
+/// Mock implementation of the refactored IAudioProcessor for testing purposes.
+/// Returns a simple MemoryStream.
+/// </summary>
+public class MockAudioProcessor : IAudioProcessor
 {
+    private readonly ILogger<MockAudioProcessor> logger;
+
     /// <summary>
-    /// Mock implementation of IAudioProcessor for testing purposes
+    /// Initializes a new instance of the <see cref="MockAudioProcessor"/> class.
     /// </summary>
-    public class MockAudioProcessor : IAudioProcessor
+    /// <param name="logger">The logger instance.</param>
+    public MockAudioProcessor(ILogger<MockAudioProcessor> logger)
     {
-        private readonly ILogger<MockAudioProcessor> logger;
+        ArgumentNullException.ThrowIfNull(logger);
+        this.logger = logger;
+    }
 
-        public MockAudioProcessor(ILogger<MockAudioProcessor> logger)
-        {
-            this.logger = logger;
-        }
+    /// <summary>
+    /// Simulates audio conversion, returning a simple MemoryStream.
+    /// Ignores the actual content of audioFileInfo for simplicity in mocking.
+    /// </summary>
+    /// <param name="audioFileInfo">Information about the input audio file (ignored in mock).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A Task containing a MemoryStream with dummy data.</returns>
+    public Task<Stream> ConvertToWavAsync(FileInfo audioFileInfo, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(audioFileInfo);
+        this.logger.LogInformation("MockAudioProcessor: Simulating conversion for {FileName}", audioFileInfo.Name);
 
-        public async Task<ProcessedAudio> ConvertToWavAsync(Stream audioStream, string fileExtension, CancellationToken cancellationToken = default)
-        {
-            logger.LogInformation("Processing audio with mock audio processor");
+        byte[] dummyWavData = System.Text.Encoding.UTF8.GetBytes("Mock WAV data");
+        var memoryStream = new MemoryStream(dummyWavData);
+        memoryStream.Position = 0;
 
-            // Simulate some processing time
-            await Task.Delay(100, cancellationToken);
+        return Task.FromResult<Stream>(memoryStream);
+    }
 
-            // Create a valid WAV header
-            var memoryStream = new MemoryStream();
-            using var writer = new BinaryWriter(memoryStream);
-            
-            // Write WAV header
-            writer.Write("RIFF".ToCharArray());
-            writer.Write(36); // Chunk size
-            writer.Write("WAVE".ToCharArray());
-            writer.Write("fmt ".ToCharArray());
-            writer.Write(16); // Subchunk size
-            writer.Write((short)1); // Audio format (PCM)
-            writer.Write((short)1); // Number of channels
-            writer.Write(16000); // Sample rate
-            writer.Write(32000); // Byte rate
-            writer.Write((short)2); // Block align
-            writer.Write((short)16); // Bits per sample
-            writer.Write("data".ToCharArray());
-            writer.Write(0); // Data size
-
-            memoryStream.Position = 0;
-
-            return new ProcessedAudio
-            {
-                AudioStream = memoryStream,
-                SampleRate = 16000,
-                Channels = 1,
-                Duration = TimeSpan.FromSeconds(1)
-            };
-        }
-
-        public bool IsFormatSupported(string fileExtension)
-        {
-            return fileExtension == ".wav";
-        }
-
-        public async Task<AudioFormatInfo> GetFormatInfoAsync(Stream audioStream, string fileExtension)
-        {
-            logger.LogInformation("Getting format information with mock audio processor");
-
-            // Simulate some processing time
-            await Task.Delay(100, default);
-
-            return new AudioFormatInfo
-            {
-                SampleRate = 16000,
-                Channels = 1,
-                BitsPerSample = 16,
-                Duration = TimeSpan.FromSeconds(1),
-                OriginalFormat = "WAV"
-            };
-        }
+    /// <summary>
+    /// Mock implementation that supports any extension for simplicity.
+    /// </summary>
+    /// <param name="fileExtension">The file extension (ignored in mock).</param>
+    /// <returns>Always true.</returns>
+    public bool IsFormatSupported(string fileExtension)
+    {
+        ArgumentNullException.ThrowIfNull(fileExtension);
+        this.logger.LogDebug("MockAudioProcessor: Assuming format {Extension} is supported", fileExtension);
+        return true;
     }
 }

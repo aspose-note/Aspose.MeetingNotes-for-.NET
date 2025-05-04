@@ -1,28 +1,27 @@
-﻿namespace Aspose.MeetingNotes.Models
+﻿namespace Aspose.MeetingNotes.Models;
+
+/// <summary>
+/// Defines the supported export file formats for the generated meeting notes.
+/// </summary>
+public enum ExportFormat
 {
     /// <summary>
-    /// Supported export formats for meeting content
+    /// Microsoft OneNote format (.one). Generation typically requires Aspose.Note.
     /// </summary>
-    public enum ExportFormat
-    {
-        /// <summary>
-        /// Microsoft OneNote format (.one)
-        /// </summary>
-        OneNote,
+    OneNote,
 
-        /// <summary>
-        /// Markdown format (.md)
-        /// </summary>
-        Markdown,
+    /// <summary>
+    /// Markdown text format (.md). Plain text with simple formatting syntax.
+    /// </summary>
+    Markdown,
 
-        /// <summary>
-        /// Portable Document Format (.pdf)
-        /// </summary>
-        PDF,
+    /// <summary>
+    /// Portable Document Format (.pdf). Generation requires a PDF library (e.g., Aspose.Pdf).
+    /// </summary>
+    PDF,
 
-        /// <summary>
-        /// HyperText Markup Language (.html)
-        /// </summary>
-        HTML
-    }
+    /// <summary>
+    /// HyperText Markup Language format (.html). Generation requires an HTML library or conversion.
+    /// </summary>
+    HTML
 }

@@ -1,18 +1,17 @@
-﻿namespace Aspose.MeetingNotes.Models
+﻿namespace Aspose.MeetingNotes.Models;
+
+/// <summary>
+/// Defines the supported external task tracking systems for action item export.
+/// </summary>
+public enum TaskTrackerType
 {
     /// <summary>
-    /// Supported task tracking systems for action item export
+    /// Atlassian Jira task tracking system.
     /// </summary>
-    public enum TaskTrackerType
-    {
-        /// <summary>
-        /// Atlassian Jira
-        /// </summary>
-        Jira,
+    Jira,
 
-        /// <summary>
-        /// Trello
-        /// </summary>
-        Trello
-    }
+    /// <summary>
+    /// Trello task tracking system.
+    /// </summary>
+    Trello
 }
