@@ -38,6 +38,7 @@ internal static class Program
         var llamaUrlOption = CreateLlamaUrlOption();
         var ffmpegPathOption = CreateFfmpegPathOption();
         var inputFileOption = CreateInputFileOption();
+        var asposeLicensePathOption = CreateAsposeLicensePathOption();
 
         var processCommand = new Command("process", "Process a meeting recording file to generate notes and action items.")
         {
@@ -46,7 +47,8 @@ internal static class Program
             outputFormatOption,
             configOption,
             llamaUrlOption,
-            ffmpegPathOption
+            ffmpegPathOption,
+            asposeLicensePathOption
         };
 
         var exportCommand = new Command("export", "Export previously analyzed meeting notes from JSON to a different format (Not fully implemented).")
@@ -67,8 +69,9 @@ internal static class Program
             var config = context.ParseResult.GetValueForOption(configOption);
             var llamaUrl = context.ParseResult.GetValueForOption(llamaUrlOption)!;
             var ffmpegPath = context.ParseResult.GetValueForOption(ffmpegPathOption);
+            var asposeLicensePath = context.ParseResult.GetValueForOption(asposeLicensePathOption);
 
-            context.ExitCode = await HandleProcessCommandAsync(file, language, outputFormat, config, llamaUrl, ffmpegPath);
+            context.ExitCode = await HandleProcessCommandAsync(file, language, outputFormat, config, llamaUrl, ffmpegPath, asposeLicensePath);
         });
 
         exportCommand.SetHandler(async (context) => {
@@ -138,18 +141,29 @@ internal static class Program
             name: "--ffmpeg-path",
             description: "Full path to the ffmpeg executable. Overrides config file and environment variable.");
 
+    private static Option<string?> CreateAsposeLicensePathOption() =>
+        new(
+            aliases: ["--aspose-license", "--license"],
+            description: "Full path to the Aspose license file (.lic). Overrides config file and environment variable. Required for PDF, HTML, OneNote export.");
 
     /// <summary>
     /// Handles the logic for the 'process' command.
     /// </summary>
-    private static async Task<int> HandleProcessCommandAsync(FileInfo file, string language, string outputFormat, FileInfo? config, string llamaUrl, string? ffmpegPathFromCli)
+    private static async Task<int> HandleProcessCommandAsync(
+        FileInfo file,
+        string language,
+        string outputFormat,
+        FileInfo? config,
+        string llamaUrl,
+        string? ffmpegPathFromCli,
+        string? asposeLicensePathFromCli)
     {
         IServiceProvider serviceProvider;
         ILogger logger;
 
         try
         {
-            serviceProvider = ConfigureServices(config, llamaUrl, language, ffmpegPathFromCli);
+            serviceProvider = ConfigureServices(config, llamaUrl, language, ffmpegPathFromCli, asposeLicensePathFromCli);
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             logger = loggerFactory.CreateLogger("Aspose.MeetingNotes.CLI.Process");
         }
@@ -297,7 +311,12 @@ internal static class Program
     /// <summary>
     /// Configures and builds the service provider for the application.
     /// </summary>
-    private static IServiceProvider ConfigureServices(FileInfo? configFile, string defaultLlamaUrl, string language, string? ffmpegPathFromCli)
+    private static IServiceProvider ConfigureServices(
+        FileInfo? configFile,
+        string defaultLlamaUrl,
+        string language,
+        string? ffmpegPathFromCli,
+        string? asposeLicensePathFromCli)
     {
         var services = new ServiceCollection();
 
@@ -312,7 +331,7 @@ internal static class Program
         var configLogger = tempLoggerFactory.CreateLogger("Aspose.MeetingNotes.CLI.Configuration");
 
         // Load configuration options, handling potential errors
-        MeetingNotesOptions options = LoadMeetingNotesOptions(configFile, defaultLlamaUrl, ffmpegPathFromCli, configLogger);
+        MeetingNotesOptions options = LoadMeetingNotesOptions(configFile, defaultLlamaUrl, ffmpegPathFromCli, asposeLicensePathFromCli, configLogger);
 
         // Override language from command line argument if different from default/config
         if (!string.IsNullOrWhiteSpace(language) && !language.Equals(options.Language, StringComparison.OrdinalIgnoreCase))
@@ -326,6 +345,7 @@ internal static class Program
         {
             opt.Language = options.Language;
             opt.FfMpegPath = options.FfMpegPath;
+            opt.AsposeLicensePath = options.AsposeLicensePath;
             opt.SpeechRecognition = options.SpeechRecognition;
             opt.CustomAIModel = options.CustomAIModel;
             opt.AIModel = options.AIModel;
@@ -340,7 +360,12 @@ internal static class Program
     /// <summary>
     /// Loads MeetingNotesOptions from a config file or sets defaults.
     /// </summary>
-    private static MeetingNotesOptions LoadMeetingNotesOptions(FileInfo? configFile, string defaultLlamaUrl, string? ffmpegPathFromCli, ILogger configLogger)
+    private static MeetingNotesOptions LoadMeetingNotesOptions(
+        FileInfo? configFile,
+        string defaultLlamaUrl,
+        string? ffmpegPathFromCli,
+        string? asposeLicensePathFromCli,
+        ILogger configLogger)
     {
         MeetingNotesOptions options;
         bool aiModelConfiguredByFile = false;
@@ -384,8 +409,16 @@ internal static class Program
             DefaultFfmpegPath; // Else use hardcoded default
         configLogger.LogInformation("Final Ffmpeg Path set to: {Path}", options.FfMpegPath);
 
+        // 2. Priority for AsposeLicensePath: CLI > Env Var > Config File > Hardcoded Default (null)
+        string? asposeLicensePathFromEnv = Environment.GetEnvironmentVariable("ASPOSE_LICENSE_PATH");
+        options.AsposeLicensePath =
+            !string.IsNullOrWhiteSpace(asposeLicensePathFromCli) ? asposeLicensePathFromCli :
+            !string.IsNullOrWhiteSpace(asposeLicensePathFromEnv) ? asposeLicensePathFromEnv :
+            !string.IsNullOrWhiteSpace(options.AsposeLicensePath) ? options.AsposeLicensePath :
+            null; // Default is null
+        configLogger.LogInformation("Final Aspose License Path set to: {Path}", options.AsposeLicensePath ?? "Not set");
 
-        // 2. AI Model Selection Logic (Fixes ChatGPT validation issue)
+        // 3. AI Model Selection Logic (Fixes ChatGPT validation issue)
         // If AIModel was NOT explicitly configured by the file AND no CustomAIModel is already set,
         // then default to using AsposeLlamaModel via the CustomAIModel property.
         if (!aiModelConfiguredByFile && options.CustomAIModel == null)

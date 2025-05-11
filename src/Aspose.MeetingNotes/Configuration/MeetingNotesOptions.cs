@@ -24,6 +24,14 @@ public class MeetingNotesOptions
     public required string FfMpegPath { get; set; }
 
     /// <summary>
+    /// Gets or sets the file system path to the Aspose license file (.lic).
+    /// This license is required for exporting to OneNote, HTML, and PDF formats, as they utilize Aspose components (e.g., Aspose.Note, Aspose.Html).
+    /// This parameter is not needed for Markdown (MD) export.
+    /// </summary>
+    /// <value>Path to the .lic file. Can be null or empty if Aspose components are used in evaluation mode, or if licensing is handled externally, though export functionality for licensed formats may be restricted.</value>
+    public string? AsposeLicensePath { get; set; } = null;
+
+    /// <summary>
     /// Gets or sets the default format for exporting results when not specified otherwise.
     /// </summary>
     /// <value>Defaults to <see cref="ExportFormat.Markdown"/>.</value>

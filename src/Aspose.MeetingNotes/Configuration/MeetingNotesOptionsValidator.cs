@@ -35,6 +35,15 @@ public class MeetingNotesOptionsValidator : IValidateOptions<MeetingNotesOptions
             errors.Add($"FFmpeg executable not found at the specified path: {options.FfMpegPath}");
         }
 
+        // Validate AsposeLicensePath
+        if (!string.IsNullOrWhiteSpace(options.AsposeLicensePath))
+        {
+            if (!File.Exists(options.AsposeLicensePath))
+            {
+                errors.Add($"Aspose license file not found at the specified path: {options.AsposeLicensePath}.");
+            }
+        }
+
         // Validate SpeechRecognition options if default recognizer is likely used
         if (options.CustomSpeechRecognizer == null && options.SpeechRecognition != null)
         {
