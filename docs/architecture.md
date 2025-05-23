@@ -1,4 +1,5 @@
-# Architecture of Aspose.MeetingNotes-for-.NET
+
+# Aspose.MeetingNotes Architecture
 
 ## General Architecture
 
@@ -15,10 +16,7 @@ graph TB
             AP[AudioProcessor]
             SR[SpeechRecognizer]
             CA[ContentAnalyzer]
-            AI[AI Integration]
-            AI1[ChatGPT]
-            AI2[Grok]
-            AI3[DeepSeek]
+            AI[AI Integration: ApiBasedAIModel]
         end
 
         subgraph Export["Export"]
@@ -51,9 +49,6 @@ graph TB
     AP --> SR
     SR --> CA
     CA --> AI
-    AI --> AI1
-    AI --> AI2
-    AI --> AI3
 
     CA --> CE
     CE --> E1
@@ -70,39 +65,34 @@ graph TB
 ## System Components
 
 ### 1. Client Layer
-- **CLI Tool**: Command-line application for working with the SDK
-- **SDK API**: Main interface for integration with other applications
+- **CLI Tool**: Command-line interface for processing and exporting meeting notes
+- **SDK API**: Entry point for external integrations
 
 ### 2. Core System
 
 #### 2.1 Processing
-- **AudioProcessor**: Audio file processing
-- **SpeechRecognizer**: Speech recognition using Whisper
-- **ContentAnalyzer**: Content analysis and structuring
-- **AI Integration**: AI model integration
-  - ChatGPT
-  - Grok
-  - DeepSeek
+- **AudioProcessor**: Handles audio preprocessing using `ffmpeg`
+- **SpeechRecognizer**: Performs transcription using Whisper
+- **ContentAnalyzer**: Analyzes transcribed text for structure and insights
+- **AI Integration**: Uses `ApiBasedAIModel` with configurable `AIModelOptions`
 
 #### 2.2 Export
-- **ContentExporter**: Export to various formats
+- **ContentExporter**: Converts analysis results into various formats
   - Markdown
   - HTML
   - PDF
   - OneNote
 
 #### 2.3 Tasks
-- **ActionExtractor**: Task extraction and management
-  - Jira integration
-  - Trello integration
-  - Azure DevOps integration
+- **ActionExtractor**: Extracts tasks and action items from content
+  - ⚠ Planned: Integrations with Jira, Trello, Azure DevOps
 
 ### 3. Infrastructure
-- **Dependency Injection**: Dependency management
-- **Logging**: Logging system
-- **Caching**: Result caching
-- **Configuration**: Configuration management
-- **Monitoring**: System monitoring
+- **Dependency Injection**: Service configuration and wiring
+- **Logging**: Centralized logging via `ILogger`
+- **Caching**: Placeholder for potential performance improvements
+- **Configuration**: Supports JSON file and environment/CLI overrides
+- **Monitoring**: ⚠ Planned: runtime health and diagnostics
 
 ## Data Flow
 
@@ -121,10 +111,10 @@ sequenceDiagram
     SpeechRecognizer->>ContentAnalyzer: Transcription
     ContentAnalyzer->>AI: Text for analysis
     AI-->>ContentAnalyzer: Analyzed content
-    ContentAnalyzer->>ActionExtractor: Content for task extraction
+    ContentAnalyzer->>ActionExtractor: Extract tasks
     ActionExtractor-->>Client: Tasks
-    ContentAnalyzer->>ContentExporter: Content for export
-    ContentExporter-->>Client: Exported data
+    ContentAnalyzer->>ContentExporter: Export
+    ContentExporter-->>Client: Exported file
 ```
 
 ## Dependencies
@@ -135,9 +125,7 @@ graph LR
         Whisper[Whisper.NET]
         AsposeNote[Aspose.Note]
         AsposeHtml[Aspose.Html]
-        OpenAI[OpenAI API]
-        GrokAPI[Grok API]
-        DeepSeekAPI[DeepSeek API]
+        LLM_API[Generic LLM API via ApiBasedAIModel]
     end
 
     subgraph Internal["Internal Dependencies"]
@@ -149,9 +137,7 @@ graph LR
     Core --> Whisper
     Core --> AsposeNote
     Core --> AsposeHtml
-    Core --> OpenAI
-    Core --> GrokAPI
-    Core --> DeepSeekAPI
+    Core --> LLM_API
     CLI --> Core
     Tests --> Core
 ```
@@ -193,9 +179,9 @@ graph TB
         subgraph Data["Data Protection"]
             D1[Encryption]
             D2[Secure Storage]
-            D3[Audit]
+            D3[Audit Logging]
         end
     end
 
     Authentication --> Data
-``` 
+```

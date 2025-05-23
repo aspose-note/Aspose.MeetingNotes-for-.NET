@@ -1,6 +1,5 @@
 ﻿using System.CommandLine;
 using System.Text.Json;
-
 using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.DependencyInjection;
 using Aspose.MeetingNotes.Exceptions;
@@ -20,7 +19,7 @@ internal static class Program
 {
     private const string DefaultLanguage = "en";
     private const string DefaultOutputFormat = "markdown";
-    private const string DefaultLlamaUrl = "http://localhost:8080/v1";
+    private const string DefaultAiUrl = "http://localhost:8080/v1";
     private const string DefaultFfmpegPath = @"C:\ProgramData\chocolatey\bin\ffmpeg.exe";
     private const string DefaultWhisperModelSize = "base";
 
@@ -35,7 +34,7 @@ internal static class Program
         var languageOption = CreateLanguageOption();
         var outputFormatOption = CreateOutputFormatOption();
         var configOption = CreateConfigOption();
-        var llamaUrlOption = CreateLlamaUrlOption();
+        var aiUrlOption = CreateAiUrlOption();
         var ffmpegPathOption = CreateFfmpegPathOption();
         var inputFileOption = CreateInputFileOption();
         var asposeLicensePathOption = CreateAsposeLicensePathOption();
@@ -46,7 +45,7 @@ internal static class Program
             languageOption,
             outputFormatOption,
             configOption,
-            llamaUrlOption,
+            aiUrlOption,
             ffmpegPathOption,
             asposeLicensePathOption
         };
@@ -67,11 +66,11 @@ internal static class Program
             var language = context.ParseResult.GetValueForOption(languageOption)!;
             var outputFormat = context.ParseResult.GetValueForOption(outputFormatOption)!;
             var config = context.ParseResult.GetValueForOption(configOption);
-            var llamaUrl = context.ParseResult.GetValueForOption(llamaUrlOption)!;
+            var aiUrl = context.ParseResult.GetValueForOption(aiUrlOption)!;
             var ffmpegPath = context.ParseResult.GetValueForOption(ffmpegPathOption);
             var asposeLicensePath = context.ParseResult.GetValueForOption(asposeLicensePathOption);
 
-            context.ExitCode = await HandleProcessCommandAsync(file, language, outputFormat, config, llamaUrl, ffmpegPath, asposeLicensePath);
+            context.ExitCode = await HandleProcessCommandAsync(file, language, outputFormat, config, aiUrl, ffmpegPath, asposeLicensePath);
         });
 
         exportCommand.SetHandler(async (context) => {
@@ -121,11 +120,11 @@ internal static class Program
         return option;
     }
 
-    private static Option<string> CreateLlamaUrlOption() =>
+    private static Option<string> CreateAiUrlOption() =>
         new Option<string>(
-            name: "--llama-url",
-            getDefaultValue: () => DefaultLlamaUrl,
-            description: "URL of the LLaMA API server (used if CustomAIModel/config doesn't specify one).");
+            name: "--ai-url",
+            getDefaultValue: () => DefaultAiUrl,
+            description: "URL of the AI model API endpoint used by the default model.");
 
     private static Option<FileInfo> CreateInputFileOption()
     {
@@ -154,7 +153,7 @@ internal static class Program
         string language,
         string outputFormat,
         FileInfo? config,
-        string llamaUrl,
+        string aiUrl,
         string? ffmpegPathFromCli,
         string? asposeLicensePathFromCli)
     {
@@ -163,7 +162,7 @@ internal static class Program
 
         try
         {
-            serviceProvider = ConfigureServices(config, llamaUrl, language, ffmpegPathFromCli, asposeLicensePathFromCli);
+            serviceProvider = ConfigureServices(config, aiUrl, language, ffmpegPathFromCli, asposeLicensePathFromCli);
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             logger = loggerFactory.CreateLogger("Aspose.MeetingNotes.CLI.Process");
         }
@@ -313,7 +312,7 @@ internal static class Program
     /// </summary>
     private static IServiceProvider ConfigureServices(
         FileInfo? configFile,
-        string defaultLlamaUrl,
+        string aiUrl,
         string language,
         string? ffmpegPathFromCli,
         string? asposeLicensePathFromCli)
@@ -331,7 +330,7 @@ internal static class Program
         var configLogger = tempLoggerFactory.CreateLogger("Aspose.MeetingNotes.CLI.Configuration");
 
         // Load configuration options, handling potential errors
-        MeetingNotesOptions options = LoadMeetingNotesOptions(configFile, defaultLlamaUrl, ffmpegPathFromCli, asposeLicensePathFromCli, configLogger);
+        MeetingNotesOptions options = LoadMeetingNotesOptions(configFile, aiUrl, ffmpegPathFromCli, asposeLicensePathFromCli, configLogger);
 
         // Override language from command line argument if different from default/config
         if (!string.IsNullOrWhiteSpace(language) && !language.Equals(options.Language, StringComparison.OrdinalIgnoreCase))
@@ -347,7 +346,6 @@ internal static class Program
             opt.FfMpegPath = options.FfMpegPath;
             opt.AsposeLicensePath = options.AsposeLicensePath;
             opt.SpeechRecognition = options.SpeechRecognition;
-            opt.CustomAIModel = options.CustomAIModel;
             opt.AIModel = options.AIModel;
         });
 
@@ -362,13 +360,12 @@ internal static class Program
     /// </summary>
     private static MeetingNotesOptions LoadMeetingNotesOptions(
         FileInfo? configFile,
-        string defaultLlamaUrl,
+        string aiUrl,
         string? ffmpegPathFromCli,
         string? asposeLicensePathFromCli,
         ILogger configLogger)
     {
         MeetingNotesOptions options;
-        bool aiModelConfiguredByFile = false;
 
         // Load base options from file if provided
         if (configFile != null)
@@ -381,10 +378,12 @@ internal static class Program
                     options = jsonDoc.Deserialize<MeetingNotesOptions>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? CreateDefaultOptions();
                     if (jsonDoc.RootElement.TryGetProperty("AIModel", out JsonElement aiModelElement) && aiModelElement.ValueKind != JsonValueKind.Null)
                     {
-                        aiModelConfiguredByFile = true;
                         configLogger.LogInformation("AIModel section found in configuration file. Type: {ModelType}", options.AIModel?.GetType().Name ?? "Unknown");
                     }
-                    else { configLogger.LogInformation("AIModel section not found or is null in configuration file"); }
+                    else
+                    {
+                        configLogger.LogInformation("AIModel section not found or is null in configuration file");
+                    }
                 }
                 configLogger.LogInformation("Successfully loaded initial configuration from file");
             }
@@ -400,7 +399,7 @@ internal static class Program
             options = CreateDefaultOptions();
         }
 
-        // 1. Ffmpeg Path Precedence: CLI > Env Var > Config File > Hardcoded Default
+        // Ffmpeg Path Precedence: CLI > Env Var > Config File > Hardcoded Default
         string? ffmpegPathFromEnv = Environment.GetEnvironmentVariable("FFMPEG_PATH");
         options.FfMpegPath = // Assign final value based on priority
             !string.IsNullOrWhiteSpace(ffmpegPathFromCli) ? ffmpegPathFromCli : // Use CLI if provided
@@ -409,7 +408,7 @@ internal static class Program
             DefaultFfmpegPath; // Else use hardcoded default
         configLogger.LogInformation("Final Ffmpeg Path set to: {Path}", options.FfMpegPath);
 
-        // 2. Priority for AsposeLicensePath: CLI > Env Var > Config File > Hardcoded Default (null)
+        // Priority for AsposeLicensePath: CLI > Env Var > Config File > Hardcoded Default (null)
         string? asposeLicensePathFromEnv = Environment.GetEnvironmentVariable("ASPOSE_LICENSE_PATH");
         options.AsposeLicensePath =
             !string.IsNullOrWhiteSpace(asposeLicensePathFromCli) ? asposeLicensePathFromCli :
@@ -418,25 +417,19 @@ internal static class Program
             null; // Default is null
         configLogger.LogInformation("Final Aspose License Path set to: {Path}", options.AsposeLicensePath ?? "Not set");
 
-        // 3. AI Model Selection Logic (Fixes ChatGPT validation issue)
-        // If AIModel was NOT explicitly configured by the file AND no CustomAIModel is already set,
-        // then default to using AsposeLlamaModel via the CustomAIModel property.
-        if (!aiModelConfiguredByFile && options.CustomAIModel == null)
+        // Ensure AIModel is always present
+        options.AIModel ??= new AIModelOptions();
+
+        if (string.IsNullOrWhiteSpace(options.AIModel.Url))
         {
-            var llamaLogger = LoggerFactory.Create(b => b.AddConsole().SetMinimumLevel(LogLevel.Warning))
-                                           .CreateLogger<AsposeLlamaModel>();
-            options.CustomAIModel = new AsposeLlamaModel(defaultLlamaUrl, llamaLogger);
-            // Set AIModel to null so validator doesn't check the default ChatGPTOptions
-            options.AIModel = null!; // Use null forgiving operator as it won't be accessed if CustomAIModel is set
-            configLogger.LogInformation("AIModel not explicitly configured via file. Using AsposeLlamaModel with URL: {LlamaUrl}", defaultLlamaUrl);
+            options.AIModel.Url = aiUrl;
+            configLogger.LogInformation("AIModel URL not set. Using default model with URL: {Url}", aiUrl);
         }
-        else if (aiModelConfiguredByFile)
+        else
         {
-            configLogger.LogInformation("Using AIModel configuration loaded from file ({ModelType})", options.AIModel?.GetType().Name ?? "Unknown");
-            // Ensure CustomAIModel is null if AIModel came from file, to avoid confusion for DI
-            options.CustomAIModel = null;
+            configLogger.LogInformation("Using AIModel configuration from file ({ModelType})",
+                options.AIModel.GetType().Name);
         }
-        // If CustomAIModel was set programmatically earlier (e.g., in CreateDefaultOptions, though not currently done), it takes precedence.
 
         // Ensure other essential defaults if not loaded
         options.SpeechRecognition ??= new SpeechRecognitionOptions { ModelSize = DefaultWhisperModelSize };
@@ -452,8 +445,7 @@ internal static class Program
             FfMpegPath = DefaultFfmpegPath,
             SpeechRecognition = new SpeechRecognitionOptions { ModelSize = DefaultWhisperModelSize },
             Language = DefaultLanguage,
-            CustomAIModel = null,
-            AIModel = new ChatGPTOptions()
+            AIModel = new AIModelOptions { Url = DefaultAiUrl }
         };
     }
 

@@ -75,43 +75,20 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IContentExporter, ContentExporter>();
 
         // Register AI Model (Singleton: assumes models are thread-safe or managed internally)
-        // Handles selection between custom, configured (ChatGPT/LLama), or potentially throws if misconfigured.
-        services.TryAddSingleton<IAIModel>(sp => {
+        // Uses the API-based model configuration from AIModelOptions.
+        services.TryAddSingleton<IAIModel>(sp =>
+        {
             var options = sp.GetRequiredService<IOptions<MeetingNotesOptions>>().Value;
-            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            var logger = sp.GetRequiredService<ILogger<ApiBasedAIModel>>();
 
-            if (options.CustomAIModel != null)
+            if (options.AIModel == null || string.IsNullOrWhiteSpace(options.AIModel.Url))
             {
-                loggerFactory.CreateLogger(typeof(ServiceCollectionExtensions))
-                    .LogInformation("Using custom IAIModel implementation: {ModelType}", options.CustomAIModel.GetType().Name);
-                return options.CustomAIModel;
+                logger.LogCritical("AIModel configuration is missing or invalid.");
+                throw new InvalidOperationException("AIModel configuration is missing or invalid.");
             }
 
-            // Select built-in based on configuration type
-            switch (options.AIModel)
-            {
-                case ChatGPTOptions chatGptOpts:
-                    loggerFactory.CreateLogger(typeof(ServiceCollectionExtensions))
-                        .LogInformation("Using configured ChatGPTModel (API Key validation happens in constructor)");
-
-                    var httpClient = sp.GetRequiredService<HttpClient>();
-                    return new ChatGPTModel(httpClient, options, loggerFactory.CreateLogger<ChatGPTModel>());
-
-                case LLamaOptions llamaOpts:
-                    loggerFactory.CreateLogger(typeof(ServiceCollectionExtensions))
-                        .LogInformation("Using configured LLamaModel from path: {ModelPath}", llamaOpts.ModelPath);
-                    return new LLamaModel(options, loggerFactory.CreateLogger<LLamaModel>());
-
-                case null:
-                    loggerFactory.CreateLogger(typeof(ServiceCollectionExtensions))
-                        .LogCritical("AIModel configuration is null and no CustomAIModel was provided");
-                    throw new InvalidOperationException("AI model configuration is missing in MeetingNotesOptions. Provide either AIModel options (ChatGPTOptions or LLamaOptions) or a CustomAIModel instance.");
-
-                default:
-                    loggerFactory.CreateLogger(typeof(ServiceCollectionExtensions))
-                        .LogCritical("Unsupported AIModel options type provided: {OptionsType}", options.AIModel.GetType().Name);
-                    throw new ArgumentException($"Unsupported AI model options type: {options.AIModel.GetType().Name}");
-            }
+            logger.LogInformation("Using ApiBasedAIModel with URL: {Url}", options.AIModel.Url);
+            return new ApiBasedAIModel(options.AIModel, logger);
         });
 
         services.TryAddScoped<MeetingNotesClient>();

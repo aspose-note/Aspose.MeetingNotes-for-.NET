@@ -1,20 +1,19 @@
 ﻿using System.Text.Json;
-
 using Aspose.LLaMACpp;
 using Aspose.LLaMACpp.Endpoints.Models;
-using Aspose.MeetingNotes.AIIntegration;
+using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.Exceptions;
 using Aspose.MeetingNotes.Models;
 
 using Microsoft.Extensions.Logging;
 
-namespace Aspose.MeetingNotes.CLI;
+namespace Aspose.MeetingNotes.AIIntegration;
 
 /// <summary>
 /// Implements the <see cref="IAIModel"/> interface using the Aspose.LLaMACpp client
-/// to interact with a LLaMA C++ API server (like llama.cpp server).
+/// to interact with a custom AI API server.
 /// </summary>
-public class AsposeLlamaModel : IAIModel
+public class ApiBasedAIModel : IAIModel
 {
     private const string AnalyzeContentPromptFormat = @"Analyze the following meeting transcript and provide:
 1. A brief summary (max 200 words)
@@ -63,14 +62,15 @@ Meeting transcript:
 {0}";
 
     private static readonly JsonSerializerOptions jsonOptions;
+    private readonly AIModelOptions options;
     private readonly LLaMACppClient client;
-    private readonly ILogger<AsposeLlamaModel> logger;
+    private readonly ILogger<ApiBasedAIModel> logger;
     private readonly string modelName = "default";
 
     /// <summary>
-    /// Initializes static members of the <see cref="AsposeLlamaModel"/> class.
+    /// Initializes static members of the <see cref="ApiBasedAIModel"/> class.
     /// </summary>
-    static AsposeLlamaModel()
+    static ApiBasedAIModel()
     {
         jsonOptions = new JsonSerializerOptions {
             PropertyNameCaseInsensitive = true,
@@ -79,20 +79,23 @@ Meeting transcript:
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AsposeLlamaModel"/> class.
+    /// Initializes a new instance of the <see cref="ApiBasedAIModel"/> class.
     /// </summary>
-    /// <param name="baseUrl">The base URL of the LLaMA C++ API server (e.g., "http://localhost:8080/v1").</param>
+    /// <param name="options">The configuration options for the AI model (e.g., URL, API key, temperature).</param>
     /// <param name="logger">The logger instance for logging operations.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="logger"/> is null.</exception>
-    /// <exception cref="ArgumentException">Thrown if <paramref name="baseUrl"/> is null or whitespace.</exception>
-    public AsposeLlamaModel(string baseUrl, ILogger<AsposeLlamaModel> logger)
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="options"/> or <paramref name="logger"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if <c>options.Url</c> is null or whitespace.</exception>
+    public ApiBasedAIModel(AIModelOptions options, ILogger<ApiBasedAIModel> logger)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.Url, nameof(options.Url));
 
+        this.options = options;
         this.logger = logger;
-        this.client = new LLaMACppClient(baseUrl);
-        this.logger.LogInformation("AsposeLlamaModel initialized with base URL: {BaseUrl}", baseUrl);
+
+        client = new LLaMACppClient(options.Url);
+        this.logger.LogInformation("ApiBasedAIModel initialized with URL: {Url}", options.Url);
     }
 
     /// <inheritdoc/>
@@ -100,27 +103,27 @@ Meeting transcript:
     {
         ArgumentException.ThrowIfNullOrEmpty(text);
 
-        string prompt = string.Format(AnalyzeContentPromptFormat, text);
+        var prompt = string.Format(AnalyzeContentPromptFormat, text);
 
         try
         {
-            this.logger.LogInformation("Sending content analysis request to LLaMA model '{ModelName}'", this.modelName);
-            string responseContent = await this.ProcessTextAsync(prompt, cancellationToken);
-            this.logger.LogDebug("Raw AI response for analysis: {Response}", responseContent);
+            logger.LogInformation("Sending content analysis request to AI model '{ModelName}'", modelName);
+            var responseContent = await ProcessTextAsync(prompt, cancellationToken);
+            logger.LogDebug("Raw AI response for analysis: {Response}", responseContent);
 
-            string cleanedResponse = CleanAiJsonResponse(responseContent, this.logger);
+            var cleanedResponse = CleanAiJsonResponse(responseContent, logger);
             var initialResult = JsonSerializer.Deserialize<AnalyzedContent>(cleanedResponse, jsonOptions);
 
             if (initialResult == null)
             {
-                this.logger.LogError("Failed to deserialize LLaMA analysis response to AnalyzedContent. Cleaned Response: {Response}", cleanedResponse);
+                logger.LogError("Failed to deserialize AI analysis response to AnalyzedContent. Cleaned Response: {Response}", cleanedResponse);
                 throw new AIModelException("Failed to parse AI response for content analysis. Response was empty or invalid JSON after cleaning");
             }
 
-            this.logger.LogInformation("Successfully parsed LLaMA analysis response. Post-processing results...");
+            logger.LogInformation("Successfully parsed AI analysis response. Post-processing results...");
 
             // Create a new record instance using a 'with' expression, applying cleaning logic
-            AnalyzedContent finalResult = initialResult with {
+            var finalResult = initialResult with {
                 Summary = initialResult.Summary?.Trim() ?? string.Empty,
                 KeyPoints = initialResult.KeyPoints?
                                .Where(p => !string.IsNullOrWhiteSpace(p))
@@ -145,13 +148,13 @@ Meeting transcript:
         }
         catch (JsonException jsonEx)
         {
-            this.logger.LogError(jsonEx, "Failed to deserialize JSON response from LLaMA during content analysis");
-            throw new AIModelException("Failed to parse JSON response from LLaMA for content analysis", jsonEx);
+            logger.LogError(jsonEx, "Failed to deserialize JSON response from AI during content analysis");
+            throw new AIModelException("Failed to parse JSON response from AI for content analysis", jsonEx);
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not AIModelException)
         {
-            this.logger.LogError(ex, "An unexpected error occurred during LLaMA content analysis");
-            throw new AIModelException("An unexpected error occurred during LLaMA content analysis", ex);
+            logger.LogError(ex, "An unexpected error occurred during AI content analysis");
+            throw new AIModelException("An unexpected error occurred during AI content analysis", ex);
         }
     }
 
@@ -160,24 +163,24 @@ Meeting transcript:
     {
         ArgumentException.ThrowIfNullOrEmpty(text);
 
-        string prompt = string.Format(ExtractActionItemsPromptFormat, text);
+        var prompt = string.Format(ExtractActionItemsPromptFormat, text);
 
         try
         {
-            this.logger.LogInformation("Sending action item extraction request to LLaMA model '{ModelName}'", this.modelName);
-            string responseContent = await this.ProcessTextAsync(prompt, cancellationToken);
-            this.logger.LogDebug("Raw AI response for action items: {Response}", responseContent);
+            logger.LogInformation("Sending action item extraction request to AI model '{ModelName}'", modelName);
+            var responseContent = await ProcessTextAsync(prompt, cancellationToken);
+            logger.LogDebug("Raw AI response for action items: {Response}", responseContent);
 
-            string cleanedResponse = CleanAiJsonResponse(responseContent, this.logger);
+            var cleanedResponse = CleanAiJsonResponse(responseContent, logger);
             var result = JsonSerializer.Deserialize<List<ActionItem>>(cleanedResponse, jsonOptions);
 
             if (result == null)
             {
-                this.logger.LogWarning("LLaMA response for action items was null or empty JSON array after cleaning. Assuming no action items found. Cleaned Response: {Response}", cleanedResponse);
+                logger.LogWarning("AI response for action items was null or empty JSON array after cleaning. Assuming no action items found. Cleaned Response: {Response}", cleanedResponse);
                 return [];
             }
 
-            this.logger.LogInformation("Successfully parsed LLaMA action items response. Found initially {Count} items", result.Count);
+            logger.LogInformation("Successfully parsed AI action items response. Found initially {Count} items", result.Count);
 
             // Clean up and validate action items
             // Using 'with' expression for records to create modified copies
@@ -193,18 +196,18 @@ Meeting transcript:
         }
         catch (JsonException jsonEx)
         {
-            this.logger.LogError(jsonEx, "Failed to deserialize JSON response from LLaMA during action item extraction");
-            throw new AIModelException("Failed to parse JSON response from LLaMA for action item extraction", jsonEx);
+            logger.LogError(jsonEx, "Failed to deserialize JSON response from AI during action item extraction");
+            throw new AIModelException("Failed to parse JSON response from AI for action item extraction", jsonEx);
         }
         catch (Exception ex) when (ex is not OperationCanceledException and not AIModelException)
         {
-            this.logger.LogError(ex, "An unexpected error occurred during LLaMA action item extraction");
-            throw new AIModelException("An unexpected error occurred during LLaMA action item extraction", ex);
+            logger.LogError(ex, "An unexpected error occurred during AI action item extraction");
+            throw new AIModelException("An unexpected error occurred during AI action item extraction", ex);
         }
     }
 
     /// <summary>
-    /// Sends a text prompt to the LLaMA C++ API server and retrieves the response content.
+    /// Sends a text prompt to the custom AI API server and retrieves the response content.
     /// </summary>
     /// <param name="text">The prompt text to send.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -214,45 +217,49 @@ Meeting transcript:
     {
         try
         {
-            var chatClient = this.client.GetChatCompletionsClient();
+            var chatClient = client.GetChatCompletionsClient();
             var request = new ChatCompletionRequest {
-                Model = this.modelName,
+                Model = modelName,
+                Temperature = options.Temperature,
+                TopP = options.TopP,
+                MaxTokens = options.MaxTokens == -1 ? null : options.MaxTokens,
                 Messages =
                 [
                     new ChatCompletionMessage { Role = "user", Content = text }
                 ]
             };
 
-            this.logger.LogDebug("Sending ChatCompletionRequest to LLaMA server");
+            logger.LogDebug("Sending ChatCompletionRequest to AI server");
             var response = await chatClient.CreateChatCompletionAsync(request, cancellationToken);
 
             // Validate response structure (example validation)
             if (response?.Choices == null || !response.Choices.Any())
             {
-                this.logger.LogWarning("LLaMA response contained no choices");
-                throw new AIModelException("LLaMA response structure was invalid: missing choices.");
+                logger.LogWarning("AI response contained no choices");
+                throw new AIModelException("AI response structure was invalid: missing choices.");
             }
             if (response.Choices[0].Message == null)
             {
-                this.logger.LogWarning("LLaMA response choice contained no message");
-                throw new AIModelException("LLaMA response structure was invalid: missing message in choice.");
+                logger.LogWarning("AI response choice contained no message");
+                throw new AIModelException("AI response structure was invalid: missing message in choice.");
             }
 
-            string? content = response.Choices[0].Message.Content;
+            var content = response.Choices[0].Message.Content;
 
             if (string.IsNullOrEmpty(content))
             {
-                this.logger.LogWarning("LLaMA response message content was null or empty");
+                logger.LogWarning("AI response message content was null or empty");
                 return string.Empty;
             }
 
             return content;
         }
-        // Catch specific exceptions from Aspose.LLaMACpp if they are documented/known
+
+        // Catch specific exceptions from AI if they are documented/known
         // catch (AsposeSpecificException ex) ...
         catch (Exception ex) when (ex is not OperationCanceledException) // Catch general errors from the client library
         {
-            this.logger.LogError(ex, "Error processing text with LLaMA model via Aspose.LLaMACpp client");
+            logger.LogError(ex, "Error processing text with custom AI model via Aspose.LLaMACpp client");
             throw new AIModelException($"Failed to process text with Aspose.LLaMACpp client: {ex.Message}", ex);
         }
     }
@@ -271,8 +278,8 @@ Meeting transcript:
             return string.Empty;
         }
 
-        string cleanedResponse = rawResponse.Trim();
-        bool changed = false;
+        var cleanedResponse = rawResponse.Trim();
+        var changed = false;
 
         // Simple check for markdown code fences (can be adapted)
         if (cleanedResponse.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
@@ -294,15 +301,16 @@ Meeting transcript:
 
         // Optional: More robust search for '{' or '[' and '}' or ']' as fallback
         // This might be needed if the AI adds explanatory text before/after JSON
-        int jsonStartIndex = cleanedResponse.IndexOfAny(['{', '[']);
-        int jsonEndIndex = cleanedResponse.LastIndexOfAny(['}', ']']);
+        var jsonStartIndex = cleanedResponse.IndexOfAny(['{', '[']);
+        var jsonEndIndex = cleanedResponse.LastIndexOfAny(['}', ']']);
 
         if (jsonStartIndex > 0 || (jsonEndIndex >= 0 && jsonEndIndex < cleanedResponse.Length - 1))
         {
             // Only attempt substring if we found likely JSON boundaries inside surrounding text
             if (jsonStartIndex >= 0 && jsonEndIndex >= jsonStartIndex)
             {
-                string potentiallyBetterJson = cleanedResponse.Substring(jsonStartIndex, jsonEndIndex - jsonStartIndex + 1);
+                var potentiallyBetterJson = cleanedResponse.Substring(jsonStartIndex, jsonEndIndex - jsonStartIndex + 1);
+
                 // Basic sanity check - does it look like JSON? (Starts/ends correctly)
                 if ((potentiallyBetterJson.StartsWith('{') && potentiallyBetterJson.EndsWith('}')) ||
                     (potentiallyBetterJson.StartsWith('[') && potentiallyBetterJson.EndsWith(']')))
@@ -316,7 +324,6 @@ Meeting transcript:
                 }
             }
         }
-
 
         if (changed)
         {

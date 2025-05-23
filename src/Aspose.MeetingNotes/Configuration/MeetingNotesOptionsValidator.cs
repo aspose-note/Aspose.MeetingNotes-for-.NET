@@ -59,24 +59,17 @@ public class MeetingNotesOptionsValidator : IValidateOptions<MeetingNotesOptions
             }
         }
 
-        // Validate AIModel options if default AI model is likely used
-        if (options.CustomAIModel == null && options.AIModel != null)
+        // Validate API-based AI model config
+        if (options.AIModel != null)
         {
-            // Validate API Key if required by the model type
-            if (options.AIModel is ChatGPTOptions chatGptOpts && string.IsNullOrWhiteSpace(chatGptOpts.ApiKey))
+            if (string.IsNullOrWhiteSpace(options.AIModel.Url))
             {
-                errors.Add($"AIModel.{nameof(chatGptOpts.ApiKey)} is required for ChatGPT");
+                errors.Add($"AIModel.{nameof(options.AIModel.Url)} must be specified.");
             }
-            else if (options.AIModel is LLamaOptions llamaOpts)
+
+            if (options.AIModel.Temperature is < 0 or > 1)
             {
-                if (string.IsNullOrWhiteSpace(llamaOpts.ModelPath))
-                {
-                    errors.Add($"AIModel.{nameof(llamaOpts.ModelPath)} must be specified for LLama");
-                }
-                else if (!File.Exists(llamaOpts.ModelPath))
-                {
-                    errors.Add($"LLama model file not found at the specified path: {llamaOpts.ModelPath}");
-                }
+                errors.Add($"AIModel.{nameof(options.AIModel.Temperature)} must be between 0.0 and 1.0.");
             }
         }
 

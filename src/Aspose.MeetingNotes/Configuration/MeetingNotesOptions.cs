@@ -44,12 +44,12 @@ public class MeetingNotesOptions
     public SpeechRecognitionOptions SpeechRecognition { get; set; } = new ();
 
     /// <summary>
-    /// Gets or sets the configuration options for the primary AI model to be used.
-    /// This should be an instance of a class derived from <see cref="AIModelOptions"/> (e.g., <see cref="ChatGPTOptions"/>, <see cref="LLamaOptions"/>).
-    /// If <see cref="CustomAIModel"/> is set, this property might be ignored by the default dependency injection setup.
+    /// Gets or sets the configuration options for the default API-based AI model used in analysis and extraction.
+    /// These options apply to the built-in <c>ApiBasedAIModel</c> implementation, which interacts with external LLM services via HTTP.
+    /// This property is ignored if <see cref="CustomAIModel"/> is explicitly provided.
     /// </summary>
-    /// <value>Defaults to a new instance of <see cref="ChatGPTOptions"/>.</value>
-    public AIModelOptions AIModel { get; set; } = new ChatGPTOptions();
+    /// <value>Defaults to a new instance of <see cref="AIModelOptions"/> with predefined URL and settings.</value>
+    public AIModelOptions AIModel { get; set; } = new ();
 
     /// <summary>
     /// Gets or sets a custom implementation of <see cref="ISpeechRecognizer"/>.

@@ -1,196 +1,32 @@
-# Aspose.MeetingNotes-for-.NET Roadmap
+# Aspose.MeetingNotes Roadmap
 
-## High-Level Overview
+## Core Features
 
-### Completed Features
-- [x] Basic project structure and architecture
-- [x] Core interfaces and base implementations
-- [x] Basic audio processing
-- [x] Initial Whisper integration for speech recognition
-- [x] Basic content analysis structure
-- [x] Initial task extraction framework
-- [x] Basic export functionality
-- [x] Core logging and configuration system
-- [x] Markdown export
-- [x] Initial ChatGPT integration
+- [x] Command-line interface with `process` command
+- [x] Audio preprocessing via `ffmpeg`
+- [x] Transcription using Whisper (`whisper.cpp`)
+- [x] AI-based analysis and action item extraction via `ApiBasedAIModel`
+- [x] Model behavior customization via `AIModelOptions` (`temperature`, `top_p`, etc.)
+- [x] Output generation in Markdown, HTML, PDF, OneNote (via `--output`)
+- [x] JSON configuration file support and CLI overrides
+- [x] Aspose license support for proprietary export formats
 
-### Planned Features
-- [ ] Advanced audio processing and optimization
+## Quality and Tooling
+
+- [x] Unit tests for content analysis, export, and configuration validation
+- [x] GitHub Actions CI: build and test on push to `master`
+- [x] CLI logging and progress output
+
+## In Progress
+
+- [ ] Initial implementation of `export` command for re-exporting saved analysis results
+- [ ] Improved diagnostics for malformed or invalid AI responses
+
+## Planned Features
+
 - [ ] Enhanced speech recognition with speaker diarization
-- [ ] Complete AI model integration
-- [ ] Advanced content analysis and structuring
-- [ ] Enhanced task extraction and management
-- [ ] Extended export capabilities
-- [ ] Performance optimization and caching
-- [ ] Security enhancements
-- [ ] CLI tool development
-- [ ] Comprehensive documentation
-
-## Detailed Roadmap
-
-### 1. Core Infrastructure
-- [x] Basic project structure
-- [x] Dependency setup
-- [x] Logging system
-- [x] Configuration management
-- [x] Core interfaces
-- [ ] CI/CD pipeline
-- [ ] Unit test framework
-- [ ] Integration test framework
-- [ ] Performance test framework
-
-### 2. Audio Processing
-- [x] Basic audio processing interface
-- [x] Core audio processor implementation
-- [x] Support for major audio formats
-- [x] Basic chunk processing
-- [ ] Advanced audio preprocessing
-- [ ] Audio quality enhancement
-- [ ] Noise reduction
-- [ ] Audio format validation
-- [ ] Memory optimization for large files
-- [ ] Parallel processing optimization
-
-### 3. Speech Recognition
-- [x] Basic speech recognition interface
-- [x] Whisper.NET integration
-- [x] Multi-language support
-- [ ] Speaker diarization
-- [ ] Real-time transcription
-- [ ] Custom vocabulary support
-- [ ] Fallback mechanisms
-- [ ] Performance optimization
-- [ ] Accuracy improvements
-- [ ] Language detection
-
-### 4. AI Integration
-- [x] Basic AI integration interface
-- [x] ChatGPT integration structure
-- [ ] Grok integration
-- [ ] DeepSeek integration
-- [ ] Custom AI model support
-- [ ] Model selection optimization
-- [ ] Cost optimization
-- [ ] Response caching
-- [ ] Error handling and retries
-- [ ] Rate limiting
-
-### 5. Content Analysis
-- [x] Basic content analysis interface
-- [x] Initial content structuring
-- [ ] Key points extraction
-- [ ] Decision tracking
-- [ ] Q&A section identification
-- [ ] Sentiment analysis
-- [ ] Topic clustering
-- [ ] Summary generation
-- [ ] Meeting type classification
-- [ ] Priority identification
-
-### 6. Task Management
-- [x] Basic task extraction interface
-- [x] Initial task identification
-- [ ] Advanced task detection
-- [ ] Assignee identification
-- [ ] Deadline parsing
-- [ ] Priority assignment
-- [ ] Task categorization
-- [ ] Task tracker integration
-- [ ] Task status tracking
-- [ ] Task dependencies
-
-### 7. Export Capabilities
-- [x] Basic export interface
-- [x] Markdown export
-- [ ] OneNote export
-- [ ] HTML export
-- [ ] PDF export
-- [ ] Custom format support
-- [ ] Template system
-- [ ] Batch export
-- [ ] Export scheduling
-- [ ] Export validation
-
-### 8. Performance Optimization
-- [x] Basic caching structure
-- [ ] Advanced caching system
-- [ ] Memory optimization
-- [ ] CPU optimization
-- [ ] Disk I/O optimization
-- [ ] Network optimization
-- [ ] Resource cleanup
-- [ ] Performance monitoring
-- [ ] Load balancing
-- [ ] Scalability improvements
-
-### 9. Security
-- [x] Basic input validation
-- [ ] Data encryption
-- [ ] API key management
-- [ ] File integrity checking
-- [ ] Access control
-- [ ] Audit logging
-- [ ] Security monitoring
-- [ ] Vulnerability scanning
-- [ ] Compliance features
-- [ ] Security documentation
-
-### 10. CLI and Integration
-- [x] Basic CLI structure
-- [ ] Command implementation
-- [ ] Interactive mode
-- [ ] Batch processing
-- [ ] Progress tracking
-- [ ] Error handling
-- [ ] Configuration management
-- [ ] Plugin system
-- [ ] Integration examples
-- [ ] CLI documentation
-
-### 11. Documentation
-- [x] Basic API documentation
-- [ ] Comprehensive API reference
-- [ ] Usage examples
-- [ ] Integration guides
-- [ ] Deployment guides
-- [ ] Troubleshooting guides
-- [ ] Performance guides
-- [ ] Security guides
-- [ ] Contributing guides
-- [ ] Architecture documentation
-
-### 12. Extensibility
-- [x] Basic modular architecture
-- [ ] Plugin system
-- [ ] Custom processor support
-- [ ] Event system
-- [ ] Custom configuration
-- [ ] Extension points
-- [ ] API versioning
-- [ ] Backward compatibility
-- [ ] Migration guides
-- [ ] Extension examples
-
-### 13. Quality Assurance
-- [ ] Comprehensive test suite
-- [ ] Code coverage
-- [ ] Performance benchmarks
-- [ ] Security testing
-- [ ] Integration testing
-- [ ] Load testing
-- [ ] Error handling
-- [ ] Logging verification
-- [ ] Documentation verification
-- [ ] Release validation
-
-### 14. Release Management
-- [ ] Version management
-- [ ] Release notes
-- [ ] Changelog
-- [ ] Breaking changes
-- [ ] Migration guides
-- [ ] Release validation
-- [ ] Distribution
-- [ ] Support channels
-- [ ] Feedback system
-- [ ] Update mechanism 
+- [ ] Custom vocabulary support for domain-specific meeting contexts
+- [ ] Enhanced task extraction and management capabilities
+- [ ] Integration with task trackers for automated task creation
+- [ ] Memory optimization for handling large audio files
+- [ ] Publication of the core library as a NuGet package
