@@ -95,13 +95,13 @@ public interface IContentExporter
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>
     /// A <see cref="Task{TResult}"/> representing the asynchronous operation.
-    /// The task result contains a string with the meeting notes formatted as HTML.
+    /// The task result contains a byte array representing the HTML file content.
     /// </returns>
     /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="content"/> or <paramref name="actionItems"/> is null.</exception>
     /// <exception cref="System.NotImplementedException">Thrown if HTML export is not implemented.</exception>
     /// <exception cref="System.OperationCanceledException">Thrown if the operation is canceled.</exception>
     /// <exception cref="System.Exception">Exceptions related to HTML generation may be thrown.</exception>
-    Task<string> ExportToHtmlAsync(
+    Task<byte[]> ExportToHtmlAsync(
         AnalyzedContent content,
         List<ActionItem> actionItems,
         CancellationToken cancellationToken = default);

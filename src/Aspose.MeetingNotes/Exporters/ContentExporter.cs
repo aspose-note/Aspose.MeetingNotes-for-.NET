@@ -1,8 +1,8 @@
-﻿using System.Text;
+﻿using System.Drawing;
+using System.Text;
 using Aspose.MeetingNotes.Configuration;
 using Aspose.MeetingNotes.Models;
 using Aspose.Note;
-using Aspose.Note.Importing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -15,6 +15,11 @@ namespace Aspose.MeetingNotes.Exporters;
 /// </summary>
 public class ContentExporter : IContentExporter
 {
+    private static readonly ParagraphStyle DefaultTextStyle = new ParagraphStyle { FontColor = Color.Black, FontName = "Arial", FontSize = 10 };
+    private static readonly ParagraphStyle Heading1Style = new ParagraphStyle { FontColor = Color.Black, FontName = "Arial", FontSize = 16, IsBold = true };
+    private static readonly ParagraphStyle Heading2Style = new ParagraphStyle { FontColor = Color.Black, FontName = "Arial", FontSize = 14, IsBold = true };
+    private static readonly ParagraphStyle Heading3Style = new ParagraphStyle { FontColor = Color.Black, FontName = "Arial", FontSize = 12, IsBold = true };
+
     private readonly ILogger<ContentExporter> logger;
     private readonly MeetingNotesOptions options;
 
@@ -75,19 +80,6 @@ public class ContentExporter : IContentExporter
                         // Optionally, rethrow a more specific exception or a general one indicating which component failed
                         throw new InvalidOperationException($"Failed to set Aspose.Note license. Please ensure the license file is valid for Aspose.Note. Path: {this.options.AsposeLicensePath}", ex);
                     }
-
-                    // Set Aspose.Html License (needed for Markdown to HTML conversion which is used by PDF/OneNote)
-                    try
-                    {
-                        var htmlLicense = new Aspose.Html.License();
-                        htmlLicense.SetLicense(options.AsposeLicensePath);
-                        this.logger.LogDebug("Aspose.Html license set successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        this.logger.LogError(ex, "Failed to set Aspose.Html license from path: {AsposeLicensePath}. Ensure the license is valid for Aspose.Html.", this.options.AsposeLicensePath);
-                        throw new InvalidOperationException($"Failed to set Aspose.Html license. Please ensure the license file is valid for Aspose.Html. Path: {this.options.AsposeLicensePath}", ex);
-                    }
                 }
             }
 
@@ -108,7 +100,7 @@ public class ContentExporter : IContentExporter
                     resultData = await this.ExportToPdfAsync(content, actionItems, cancellationToken);
                     break;
                 case ExportFormat.HTML:
-                    resultText = await this.ExportToHtmlAsync(content, actionItems, cancellationToken);
+                    resultData = await this.ExportToHtmlAsync(content, actionItems, cancellationToken);
                     break;
                 default:
                     this.logger.LogError("Unsupported export format specified: {Format}", format);
@@ -307,24 +299,13 @@ public class ContentExporter : IContentExporter
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(content);
-        ArgumentNullException.ThrowIfNull(actionItems);
-        this.logger.LogInformation("Exporting to OneNote via HTML import.");
+        this.logger.LogInformation("Exporting to OneNote directly using Aspose.Note API");
 
-        string htmlString = await ConvertMarkdownToHtmlAsync(content, actionItems, cancellationToken);
-        byte[] htmlBytes = Encoding.UTF8.GetBytes(htmlString);
+        var document = GetOneNoteDocument(content, cancellationToken);
 
-        using (var htmlMemoryStream = new MemoryStream(htmlBytes))
-        {
-            // Aspose.Note operations are generally synchronous
-            var oneDocument = new Document();
-            oneDocument.Import(htmlMemoryStream, new HtmlImportOptions());
-
-            using (var oneStream = new MemoryStream())
-            {
-                oneDocument.Save(oneStream, SaveFormat.One);
-                return oneStream.ToArray();
-            }
-        }
+        using var stream = new MemoryStream();
+        document.Save(stream, SaveFormat.One);
+        return stream.ToArray();
     }
 
     /// <inheritdoc/>
@@ -334,110 +315,332 @@ public class ContentExporter : IContentExporter
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(content);
-        ArgumentNullException.ThrowIfNull(actionItems);
-        this.logger.LogInformation("Exporting to PDF via HTML import.");
+        this.logger.LogInformation("Exporting to PDF directly using Aspose.Note API");
 
-        string htmlString = await ConvertMarkdownToHtmlAsync(content, actionItems, cancellationToken);
-        byte[] htmlBytes = Encoding.UTF8.GetBytes(htmlString);
+        var document = GetOneNoteDocument(content, cancellationToken);
 
-        using (var htmlMemoryStream = new MemoryStream(htmlBytes))
-        {
-            // Aspose.Note operations are generally synchronous
-            var oneDocument = new Document();
-            oneDocument.Import(htmlMemoryStream, new HtmlImportOptions());
-
-            using (var pdfStream = new MemoryStream())
-            {
-                oneDocument.Save(pdfStream, SaveFormat.Pdf);
-                return pdfStream.ToArray();
-            }
-        }
+        using var stream = new MemoryStream();
+        document.Save(stream, SaveFormat.Pdf);
+        return stream.ToArray();
     }
 
     /// <inheritdoc/>
-    public async Task<string> ExportToHtmlAsync(
+    public async Task<byte[]> ExportToHtmlAsync(
         AnalyzedContent content,
         List<ActionItem> actionItems,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(content);
-        ArgumentNullException.ThrowIfNull(actionItems);
-        this.logger.LogInformation("Exporting to HTML format.");
+        this.logger.LogInformation("Exporting to HTML directly using Aspose.Note API");
 
-        // The conversion already produces an HTML string.
-        return await ConvertMarkdownToHtmlAsync(content, actionItems, cancellationToken);
+        var document = GetOneNoteDocument(content, cancellationToken);
+
+        using var stream = new MemoryStream();
+        document.Save(stream, SaveFormat.Html);
+        return stream.ToArray();
     }
 
-    /// <summary>
-    /// Converts analyzed content and action items to an HTML string.
-    /// This is a helper method used by other export formats.
-    /// </summary>
-    private async Task<string> ConvertMarkdownToHtmlAsync(
-        AnalyzedContent analyzedContent,
-        List<ActionItem> actionItems,
-        CancellationToken cancellationToken)
+    private static Document GetOneNoteDocument(AnalyzedContent content, CancellationToken cancellationToken)
     {
-        this.logger.LogInformation("Converting content to HTML via Markdown using Aspose.HTML.");
-        var markdownText = await ExportToMarkdownAsync(analyzedContent, actionItems, cancellationToken);
-        if (string.IsNullOrWhiteSpace(markdownText))
+        var pageTitleStyle = CloneStyle(Heading1Style);
+        pageTitleStyle.FontSize = 18;
+        var pageDateStyle = CloneStyle(DefaultTextStyle);
+        pageDateStyle.FontSize = 10;
+
+        var title = new Title {
+            TitleText = new RichText { Text = "Meeting Notes", ParagraphStyle = pageTitleStyle },
+            TitleDate = new RichText { Text = DateTime.Now.ToString("D"), ParagraphStyle = pageDateStyle },
+            TitleTime = new RichText { Text = DateTime.Now.ToString("t"), ParagraphStyle = pageDateStyle }
+        };
+        var page = new Page { Title = title };
+
+        float currentVerticalOffset = 70.0f; // Initial Y offset for the first Outline
+        const float horizontalOffset = 40.0f;
+        const float outlineMaxWidth = 680.0f;
+        const float spacingBetweenOutlines = 15.0f; // Spacing between top-level Outline blocks
+
+        var summaryOutline = BuildTextBlock(content.Summary, "Summary", Heading1Style, DefaultTextStyle, horizontalOffset, ref currentVerticalOffset, outlineMaxWidth);
+        if (summaryOutline != null)
         {
-            this.logger.LogWarning("Markdown content is empty. Resulting HTML will be empty.");
-            return string.Empty;
+            page.AppendChildLast(summaryOutline);
         }
 
-        string htmlText;
-        // Using temporary files for conversion, as Aspose.Html.Converter.ConvertMarkdown often uses file paths.
-        var tempMdPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".md");
-        var tempHtmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".html");
+        currentVerticalOffset += spacingBetweenOutlines;
 
-        try
+        if (content.KeyPoints.Any())
         {
-            // File operations can be wrapped in Task.Run if they become a bottleneck,
-            // but for typical scenarios, direct calls within an async method are acceptable for clarity.
-            await File.WriteAllTextAsync(tempMdPath, markdownText, Encoding.UTF8, cancellationToken);
-            this.logger.LogDebug("Temporary Markdown file created: {TempMdPath}", tempMdPath);
-
-            // Aspose.Html.Converters.Converter.ConvertMarkdown is a synchronous method.
-            // If this becomes a performance issue in highly concurrent scenarios,
-            // it could be wrapped with Task.Run, but that adds complexity.
-            Aspose.Html.Converters.Converter.ConvertMarkdown(tempMdPath, tempHtmlPath);
-            this.logger.LogDebug("Markdown file '{TempMdPath}' converted to HTML file '{TempHtmlPath}'.", tempMdPath, tempHtmlPath);
-
-            htmlText = await File.ReadAllTextAsync(tempHtmlPath, Encoding.UTF8, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error during Aspose.HTML Markdown to HTML conversion using temporary files.");
-            throw new InvalidOperationException("Failed to convert Markdown to HTML via temporary files.", ex);
-        }
-        finally
-        {
-            if (File.Exists(tempMdPath))
+            var keyPointsOutline = BuildListBlock(content.KeyPoints, "Key Points", Heading1Style, DefaultTextStyle, false, horizontalOffset, ref currentVerticalOffset, outlineMaxWidth);
+            if (keyPointsOutline != null)
             {
-                try
-                {
-                    File.Delete(tempMdPath);
-                }
-                catch (Exception ex)
-                {
-                    this.logger.LogWarning(ex, "Failed to delete temp MD file: {TempMdPath}", tempMdPath);
-                }
+                page.AppendChildLast(keyPointsOutline);
             }
 
-            if (File.Exists(tempHtmlPath))
+            currentVerticalOffset += spacingBetweenOutlines;
+        }
+
+        if (content.Sections.Any())
+        {
+            var sectionsOutline = BuildSectionsBlock(content.Sections, "Meeting Content", Heading1Style, Heading2Style, DefaultTextStyle, horizontalOffset, ref currentVerticalOffset, outlineMaxWidth);
+            if (sectionsOutline != null)
             {
-                try
+                page.AppendChildLast(sectionsOutline);
+            }
+
+            currentVerticalOffset += spacingBetweenOutlines;
+        }
+
+        if (content.Decisions.Any())
+        {
+            var decisionsOutline = BuildListBlock(content.Decisions, "Decisions", Heading1Style, DefaultTextStyle, false, horizontalOffset, ref currentVerticalOffset, outlineMaxWidth);
+            if (decisionsOutline != null)
+            {
+                page.AppendChildLast(decisionsOutline);
+            }
+
+            currentVerticalOffset += spacingBetweenOutlines;
+        }
+
+        if (content.Topics.Any())
+        {
+            var topicsOutline = BuildListBlock(content.Topics, "Topics Discussed", Heading1Style, DefaultTextStyle, false, horizontalOffset, ref currentVerticalOffset, outlineMaxWidth);
+            if (topicsOutline != null)
+            {
+                page.AppendChildLast(topicsOutline);
+            }
+
+            currentVerticalOffset += spacingBetweenOutlines;
+        }
+
+        if (content.QASegments.Any())
+        {
+            var qaOutline = BuildQABlock(content.QASegments, "Questions and Answers", Heading1Style, Heading3Style, DefaultTextStyle, horizontalOffset, ref currentVerticalOffset, outlineMaxWidth);
+            if (qaOutline != null)
+            {
+                page.AppendChildLast(qaOutline);
+            }
+
+            currentVerticalOffset += spacingBetweenOutlines;
+        }
+
+        var transcriptOutline = BuildTextBlock(content.TranscribedText, "Full Transcript", Heading1Style, DefaultTextStyle, horizontalOffset, ref currentVerticalOffset, outlineMaxWidth);
+        if (transcriptOutline != null)
+        {
+            page.AppendChildLast(transcriptOutline);
+        }
+
+        var oneNoteDocument = new Document();
+        oneNoteDocument.AppendChildLast(page);
+        return oneNoteDocument;
+    }
+
+    private static Outline? BuildTextBlock(string? text, string title, ParagraphStyle titleStyle, ParagraphStyle contentStyle, float hOffset, ref float vOffset, float maxWidth)
+    {
+        if (string.IsNullOrWhiteSpace(text) && string.IsNullOrWhiteSpace(title))
+        {
+            return null;
+        }
+
+        var outline = new Outline { VerticalOffset = vOffset, HorizontalOffset = hOffset, MaxWidth = maxWidth };
+        float internalVOffset = 0f;
+
+        // Title
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            var titleOe = new OutlineElement { }; // Padding after the title OE
+            titleOe.AppendChildLast(new RichText { SpaceAfter = 5f, Text = title, ParagraphStyle = CloneStyle(titleStyle) });
+            outline.AppendChildLast(titleOe);
+            internalVOffset += 20f; // Approximate height of the title + spacing
+        }
+
+        // Text (each paragraph in its own OE)
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            var paragraphs = text.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
+            foreach (var para in paragraphs)
+            {
+                if (string.IsNullOrWhiteSpace(para) && paragraphs.Length > 1 && para != paragraphs.Last())
                 {
-                    File.Delete(tempHtmlPath);
+                    continue;
                 }
-                catch (Exception ex)
-                {
-                    this.logger.LogWarning(ex, "Failed to delete temp HTML file: {TempHtmlPath}", tempHtmlPath);
-                }
+
+                var contentOe = new OutlineElement { };
+                contentOe.AppendChildLast(new RichText { SpaceBefore = (title != null && para == paragraphs.First()) ? 0f : 2f, Text = para, ParagraphStyle = CloneStyle(contentStyle) });
+                outline.AppendChildLast(contentOe);
+            }
+
+            // Estimate number of visual lines and adjust height accordingly
+            double avgCharsPerLine = 115.0; // Empirical estimate for Arial 10pt and width ≈ 680pt
+            int estimatedLineCount = (int) Math.Ceiling(text.Length / avgCharsPerLine);
+            internalVOffset += estimatedLineCount * 14f; // 14f per line including padding
+        }
+
+        vOffset += internalVOffset; // Update the global vOffset based on the content height of this Outline
+        return outline;
+    }
+
+    private static Outline? BuildListBlock(IEnumerable<string>? items, string title, ParagraphStyle titleStyle, ParagraphStyle itemStyle, bool isNumbered, float hOffset, ref float vOffset, float maxWidth)
+    {
+        if ((items == null || !items.Any(i => !string.IsNullOrWhiteSpace(i))) && string.IsNullOrWhiteSpace(title))
+        {
+            return null;
+        }
+
+        var outline = new Outline { VerticalOffset = vOffset, HorizontalOffset = hOffset, MaxWidth = maxWidth };
+        float internalVOffset = 0f;
+
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            var titleOe = new OutlineElement { };
+            titleOe.AppendChildLast(new RichText { SpaceAfter = 5f, Text = title, ParagraphStyle = CloneStyle(titleStyle) });
+            outline.AppendChildLast(titleOe);
+            internalVOffset += 20f;
+        }
+
+        if (items != null && items.Any(i => !string.IsNullOrWhiteSpace(i)))
+        {
+            int listMarkerFontSize = itemStyle.FontSize ?? 10;
+            string listFontName = itemStyle.FontName ?? "Arial";
+            NumberList listSettings = isNumbered
+                ? new NumberList("{0}.", NumberFormat.DecimalNumbers, listFontName, listMarkerFontSize)
+                : new NumberList("\u2022", listFontName, listMarkerFontSize);
+
+            bool firstItem = true;
+            foreach (var itemText in items.Where(i => !string.IsNullOrWhiteSpace(i)))
+            {
+                var itemOe = new OutlineElement {
+                    NumberList = listSettings
+                };
+                itemOe.AppendChildLast(new RichText { SpaceBefore = firstItem ? 2f : 1f, SpaceAfter = 1f, Text = itemText!.Trim(), ParagraphStyle = CloneStyle(itemStyle) });
+                outline.AppendChildLast(itemOe);
+                internalVOffset += 15f;
+                firstItem = false;
             }
         }
 
-        this.logger.LogInformation("Markdown to HTML conversion successful.");
-        return htmlText;
+        vOffset += internalVOffset;
+        return outline;
+    }
+
+    private static Outline? BuildSectionsBlock(List<ContentSection>? sections, string mainTitle, ParagraphStyle mainTitleStyle, ParagraphStyle sectionTitleStyle, ParagraphStyle contentStyle, float hOffset, ref float vOffset, float maxWidth)
+    {
+        if ((sections == null || !sections.Any()) && string.IsNullOrWhiteSpace(mainTitle))
+        {
+            return null;
+        }
+
+        var outline = new Outline { VerticalOffset = vOffset, HorizontalOffset = hOffset, MaxWidth = maxWidth };
+        float internalVOffset = 0f;
+
+        if (!string.IsNullOrWhiteSpace(mainTitle))
+        {
+            var mainTitleOe = new OutlineElement { };
+            mainTitleOe.AppendChildLast(new RichText { SpaceAfter = 8f, Text = mainTitle, ParagraphStyle = CloneStyle(mainTitleStyle) });
+            outline.AppendChildLast(mainTitleOe);
+            internalVOffset += 25f;
+        }
+
+        if (sections != null)
+        {
+            bool firstSection = true;
+            foreach (var section in sections)
+            {
+                if (!string.IsNullOrWhiteSpace(section.Title))
+                {
+                    var sectionTitleOe = new OutlineElement { };
+                    sectionTitleOe.AppendChildLast(new RichText { SpaceBefore = firstSection ? 2f : 8f, SpaceAfter = 3f, Text = section.Title, ParagraphStyle = CloneStyle(sectionTitleStyle) });
+                    outline.AppendChildLast(sectionTitleOe);
+                    internalVOffset += 20f;
+                }
+                if (!string.IsNullOrWhiteSpace(section.Content))
+                {
+                    var paragraphs = section.Content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
+                    foreach (var para in paragraphs)
+                    {
+                        if (string.IsNullOrWhiteSpace(para) && paragraphs.Length > 1 && para != paragraphs.Last())
+                        {
+                            continue;
+                        }
+
+                        var contentOe = new OutlineElement { };
+                        contentOe.AppendChildLast(new RichText { SpaceBefore = (para == paragraphs.First() && !string.IsNullOrWhiteSpace(section.Title)) ? 0f : 2f, Text = para, ParagraphStyle = CloneStyle(contentStyle) });
+                        outline.AppendChildLast(contentOe);
+                        internalVOffset += 15f;
+                    }
+                }
+                firstSection = false;
+            }
+        }
+
+        vOffset += internalVOffset;
+        return outline;
+    }
+
+    private static Outline? BuildQABlock(List<QASegment>? qas, string mainTitle, ParagraphStyle mainTitleStyle, ParagraphStyle questionStyle, ParagraphStyle answerStyle, float hOffset, ref float vOffset, float maxWidth)
+    {
+        if ((qas == null || !qas.Any()) && string.IsNullOrWhiteSpace(mainTitle))
+        {
+            return null;
+        }
+
+        var outline = new Outline { VerticalOffset = vOffset, HorizontalOffset = hOffset, MaxWidth = maxWidth };
+        float internalVOffset = 0f;
+
+        if (!string.IsNullOrWhiteSpace(mainTitle))
+        {
+            var mainTitleOe = new OutlineElement { };
+            mainTitleOe.AppendChildLast(new RichText { SpaceAfter = 8f, Text = mainTitle, ParagraphStyle = CloneStyle(mainTitleStyle) });
+            outline.AppendChildLast(mainTitleOe);
+            internalVOffset += 25f;
+        }
+
+        if (qas != null)
+        {
+            bool firstQA = true;
+            foreach (var qa in qas)
+            {
+                if (!string.IsNullOrWhiteSpace(qa.Question))
+                {
+                    var questionOe = new OutlineElement { };
+                    questionOe.AppendChildLast(new RichText { SpaceBefore = firstQA ? 2f : 8f, SpaceAfter = 3f, Text = "Q: " + qa.Question, ParagraphStyle = CloneStyle(questionStyle) });
+                    outline.AppendChildLast(questionOe);
+                    internalVOffset += 20f;
+                }
+                if (!string.IsNullOrWhiteSpace(qa.Answer))
+                {
+                    var paragraphs = qa.Answer.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
+                    bool firstParaInAnswer = true;
+                    foreach (var para in paragraphs)
+                    {
+                        if (string.IsNullOrWhiteSpace(para) && paragraphs.Length > 1 && para != paragraphs.Last())
+                        {
+                            continue;
+                        }
+
+                        var answerOe = new OutlineElement { };
+                        answerOe.AppendChildLast(new RichText { SpaceBefore = (para == paragraphs.First() && !string.IsNullOrWhiteSpace(qa.Question)) ? 0f : 1f, Text = (firstParaInAnswer ? "A: " : string.Empty) + para, ParagraphStyle = CloneStyle(answerStyle) });
+                        outline.AppendChildLast(answerOe);
+                        internalVOffset += 15f;
+                        firstParaInAnswer = false;
+                    }
+                }
+
+                firstQA = false;
+            }
+        }
+
+        vOffset += internalVOffset;
+        return outline;
+    }
+
+    private static ParagraphStyle CloneStyle(ParagraphStyle original)
+    {
+        return new ParagraphStyle {
+            FontColor = original.FontColor,
+            FontName = original.FontName,
+            FontSize = original.FontSize,
+            IsBold = original.IsBold,
+            IsItalic = original.IsItalic,
+            IsUnderline = original.IsUnderline
+        };
     }
 }

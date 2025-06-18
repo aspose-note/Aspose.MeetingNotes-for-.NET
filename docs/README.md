@@ -27,7 +27,7 @@ The library uses FFmpeg for audio file conversion. FFmpeg must be installed on t
 * **AI Model:** Requires configuration for the AI model using `AIModelOptions`, which includes endpoint URL, temperature, top-p sampling, and other parameters. This unified model interacts with external LLM APIs like LLaMA.cpp, DeepSeek, or compatible services. You may also provide a custom `IAIModel` implementation.
 
 ### Aspose Components & Licensing
-For exporting meeting notes to PDF, HTML, and OneNote formats, Aspose.MeetingNotes utilizes powerful components from the Aspose library suite (specifically Aspose.Note and Aspose.Html). To use these export features without evaluation limitations (such as watermarks), a valid Aspose license file (e.g., `Aspose.Total.NET.lic`) is required.
+For exporting meeting notes to PDF, HTML, and OneNote formats, Aspose.MeetingNotes utilizes powerful components from the Aspose library suite (specifically Aspose.Note). To use these export features without evaluation limitations (such as watermarks), a valid Aspose license file (e.g., `Aspose.Total.NET.lic`) is required.
 
 The path to your Aspose license file can be configured via the `AsposeLicensePath` property in `MeetingNotesOptions`. This can be set using:
 
