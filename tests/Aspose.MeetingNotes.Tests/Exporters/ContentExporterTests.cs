@@ -140,16 +140,8 @@ namespace Aspose.MeetingNotes.Tests.Exporters
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
 
-            if (format == ExportFormat.HTML)
-            {
-                Assert.NotNull(result.Text);
-                Assert.True(result.Text.Length > 0, "HTML output should not be empty.");
-            }
-            else // PDF, OneNote
-            {
-                Assert.NotNull(result.Data);
-                Assert.True(result.Data.Length > 0, $"{format} output data should not be empty.");
-            }
+            Assert.NotNull(result.Data);
+            Assert.True(result.Data.Length > 0, $"{format} output data should not be empty.");
         }
 
         [Theory]
