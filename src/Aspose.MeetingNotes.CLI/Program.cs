@@ -35,6 +35,8 @@ internal static class Program
         var outputFormatOption = CreateOutputFormatOption();
         var configOption = CreateConfigOption();
         var aiUrlOption = CreateAiUrlOption();
+        var modelNameOption = CreateModelNameOption();
+        var apiKeyOption = CreateApiKeyOption();
         var ffmpegPathOption = CreateFfmpegPathOption();
         var inputFileOption = CreateInputFileOption();
         var asposeLicensePathOption = CreateAsposeLicensePathOption();
@@ -46,6 +48,8 @@ internal static class Program
             outputFormatOption,
             configOption,
             aiUrlOption,
+            modelNameOption,
+            apiKeyOption,
             ffmpegPathOption,
             asposeLicensePathOption
         };
@@ -67,10 +71,12 @@ internal static class Program
             var outputFormat = context.ParseResult.GetValueForOption(outputFormatOption)!;
             var config = context.ParseResult.GetValueForOption(configOption);
             var aiUrl = context.ParseResult.GetValueForOption(aiUrlOption)!;
+            var modelName = context.ParseResult.GetValueForOption(modelNameOption);
+            var apiKey = context.ParseResult.GetValueForOption(apiKeyOption);
             var ffmpegPath = context.ParseResult.GetValueForOption(ffmpegPathOption);
             var asposeLicensePath = context.ParseResult.GetValueForOption(asposeLicensePathOption);
 
-            context.ExitCode = await HandleProcessCommandAsync(file, language, outputFormat, config, aiUrl, ffmpegPath, asposeLicensePath);
+            context.ExitCode = await HandleProcessCommandAsync(file, language, outputFormat, config, aiUrl, modelName, apiKey, ffmpegPath, asposeLicensePath);
         });
 
         exportCommand.SetHandler(async (context) => {
@@ -126,6 +132,16 @@ internal static class Program
             getDefaultValue: () => DefaultAiUrl,
             description: "URL of the AI model API endpoint used by the default model.");
 
+    private static Option<string?> CreateModelNameOption() =>
+        new Option<string?>(
+            name: "--model-name",
+            description: "Name of the AI model to use (overrides config file).");
+
+    private static Option<string?> CreateApiKeyOption() =>
+        new Option<string?>(
+            name: "--api-key",
+            description: "Optional API key to override configuration for the AI model.");
+
     private static Option<FileInfo> CreateInputFileOption()
     {
         var option = new Option<FileInfo>(
@@ -154,6 +170,8 @@ internal static class Program
         string outputFormat,
         FileInfo? config,
         string aiUrl,
+        string? modelName,
+        string? apiKey,
         string? ffmpegPathFromCli,
         string? asposeLicensePathFromCli)
     {
@@ -162,7 +180,7 @@ internal static class Program
 
         try
         {
-            serviceProvider = ConfigureServices(config, aiUrl, language, ffmpegPathFromCli, asposeLicensePathFromCli);
+            serviceProvider = ConfigureServices(config, aiUrl, modelName, apiKey, language, ffmpegPathFromCli, asposeLicensePathFromCli);
             var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
             logger = loggerFactory.CreateLogger("Aspose.MeetingNotes.CLI.Process");
         }
@@ -313,6 +331,8 @@ internal static class Program
     private static IServiceProvider ConfigureServices(
         FileInfo? configFile,
         string aiUrl,
+        string? modelName,
+        string? apiKey,
         string language,
         string? ffmpegPathFromCli,
         string? asposeLicensePathFromCli)
@@ -330,7 +350,7 @@ internal static class Program
         var configLogger = tempLoggerFactory.CreateLogger("Aspose.MeetingNotes.CLI.Configuration");
 
         // Load configuration options, handling potential errors
-        MeetingNotesOptions options = LoadMeetingNotesOptions(configFile, aiUrl, ffmpegPathFromCli, asposeLicensePathFromCli, configLogger);
+        MeetingNotesOptions options = LoadMeetingNotesOptions(configFile, aiUrl, modelName, apiKey, ffmpegPathFromCli, asposeLicensePathFromCli, configLogger);
 
         // Override language from command line argument if different from default/config
         if (!string.IsNullOrWhiteSpace(language) && !language.Equals(options.Language, StringComparison.OrdinalIgnoreCase))
@@ -361,6 +381,8 @@ internal static class Program
     private static MeetingNotesOptions LoadMeetingNotesOptions(
         FileInfo? configFile,
         string aiUrl,
+        string? modelName,
+        string? apiKey,
         string? ffmpegPathFromCli,
         string? asposeLicensePathFromCli,
         ILogger configLogger)
@@ -420,15 +442,24 @@ internal static class Program
         // Ensure AIModel is always present
         options.AIModel ??= new AIModelOptions();
 
-        if (string.IsNullOrWhiteSpace(options.AIModel.Url))
+        if (!string.IsNullOrWhiteSpace(aiUrl))
         {
             options.AIModel.Url = aiUrl;
-            configLogger.LogInformation("AIModel URL not set. Using default model with URL: {Url}", aiUrl);
+            configLogger.LogInformation("AIModel URL overridden from CLI: {Url}", aiUrl);
         }
-        else
+
+        // Apply CLI model name if provided
+        if (!string.IsNullOrWhiteSpace(modelName))
         {
-            configLogger.LogInformation("Using AIModel configuration from file ({ModelType})",
-                options.AIModel.GetType().Name);
+            options.AIModel.ModelName = modelName;
+            configLogger.LogInformation("Model name overridden from CLI: {ModelName}", modelName);
+        }
+
+        // Apply CLI API key if provided
+        if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            options.AIModel.ApiKey = apiKey;
+            configLogger.LogInformation("API key overridden from CLI: {ApiKey}", apiKey);
         }
 
         // Ensure other essential defaults if not loaded

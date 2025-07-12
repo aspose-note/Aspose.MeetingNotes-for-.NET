@@ -14,6 +14,13 @@ public class AIModelOptions
     public string Url { get; set; } = "http://localhost:8080/v1";
 
     /// <summary>
+    /// Gets or sets the name of the AI model to use for processing requests.
+    /// This corresponds to the model identifier used by the external LLM API (e.g., "llama-3-8b-instruct").
+    /// </summary>
+    /// <value>Defaults to "default".</value>
+    public string ModelName { get; set; } = "default";
+
+    /// <summary>
     /// Gets or sets the API key required for accessing the AI model service, if applicable.
     /// </summary>
     /// <value>The API key string. Defaults to an empty string.</value>

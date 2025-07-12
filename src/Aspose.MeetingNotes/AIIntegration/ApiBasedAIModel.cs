@@ -65,7 +65,7 @@ Meeting transcript:
     private readonly AIModelOptions options;
     private readonly LLaMACppClient client;
     private readonly ILogger<ApiBasedAIModel> logger;
-    private readonly string modelName = "default";
+    private readonly string modelName;
 
     /// <summary>
     /// Initializes static members of the <see cref="ApiBasedAIModel"/> class.
@@ -94,7 +94,8 @@ Meeting transcript:
         this.options = options;
         this.logger = logger;
 
-        client = new LLaMACppClient(options.Url);
+        client = new LLaMACppClient(options.Url, options.ApiKey);
+        this.modelName = string.IsNullOrWhiteSpace(options.ModelName) ? "default" : options.ModelName;
         this.logger.LogInformation("ApiBasedAIModel initialized with URL: {Url}", options.Url);
     }
 
