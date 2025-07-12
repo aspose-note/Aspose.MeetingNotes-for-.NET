@@ -63,7 +63,6 @@ Meeting transcript:
 
     private static readonly JsonSerializerOptions jsonOptions;
     private readonly AIModelOptions options;
-    private readonly LLaMACppClient client;
     private readonly ILogger<ApiBasedAIModel> logger;
     private readonly string modelName;
 
@@ -93,8 +92,6 @@ Meeting transcript:
 
         this.options = options;
         this.logger = logger;
-
-        client = new LLaMACppClient(options.Url, options.ApiKey);
         this.modelName = string.IsNullOrWhiteSpace(options.ModelName) ? "default" : options.ModelName;
         this.logger.LogInformation("ApiBasedAIModel initialized with URL: {Url}", options.Url);
     }
@@ -218,6 +215,7 @@ Meeting transcript:
     {
         try
         {
+            var client = new LLaMACppClient(options.Url, options.ApiKey);
             var chatClient = client.GetChatCompletionsClient();
             var request = new ChatCompletionRequest {
                 Model = modelName,

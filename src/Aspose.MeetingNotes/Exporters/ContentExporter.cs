@@ -301,7 +301,7 @@ public class ContentExporter : IContentExporter
         ArgumentNullException.ThrowIfNull(content);
         this.logger.LogInformation("Exporting to OneNote directly using Aspose.Note API");
 
-        var document = GetOneNoteDocument(content, cancellationToken);
+        var document = GetOneNoteDocument(content, actionItems, cancellationToken);
 
         using var stream = new MemoryStream();
         document.Save(stream, SaveFormat.One);
@@ -317,7 +317,7 @@ public class ContentExporter : IContentExporter
         ArgumentNullException.ThrowIfNull(content);
         this.logger.LogInformation("Exporting to PDF directly using Aspose.Note API");
 
-        var document = GetOneNoteDocument(content, cancellationToken);
+        var document = GetOneNoteDocument(content, actionItems, cancellationToken);
 
         using var stream = new MemoryStream();
         document.Save(stream, SaveFormat.Pdf);
@@ -333,14 +333,14 @@ public class ContentExporter : IContentExporter
         ArgumentNullException.ThrowIfNull(content);
         this.logger.LogInformation("Exporting to HTML directly using Aspose.Note API");
 
-        var document = GetOneNoteDocument(content, cancellationToken);
+        var document = GetOneNoteDocument(content, actionItems, cancellationToken);
 
         using var stream = new MemoryStream();
         document.Save(stream, SaveFormat.Html);
         return stream.ToArray();
     }
 
-    private static Document GetOneNoteDocument(AnalyzedContent content, CancellationToken cancellationToken)
+    private static Document GetOneNoteDocument(AnalyzedContent content, List<ActionItem> actionItems, CancellationToken cancellationToken)
     {
         var pageTitleStyle = CloneStyle(Heading1Style);
         pageTitleStyle.FontSize = 18;
@@ -417,6 +417,27 @@ public class ContentExporter : IContentExporter
             if (qaOutline != null)
             {
                 page.AppendChildLast(qaOutline);
+            }
+
+            currentVerticalOffset += spacingBetweenOutlines;
+        }
+
+        if (actionItems.Any())
+        {
+            var actionsOutline = BuildListBlock(
+                actionItems.Select(item => $"{item.Description} (Assignee: {item.Assignee}, Due: {item.DueDate}, Priority: {item.Priority})"),
+                "Action Items",
+                Heading1Style,
+                DefaultTextStyle,
+                false,
+                horizontalOffset,
+                ref currentVerticalOffset,
+                outlineMaxWidth
+            );
+
+            if (actionsOutline != null)
+            {
+                page.AppendChildLast(actionsOutline);
             }
 
             currentVerticalOffset += spacingBetweenOutlines;
@@ -507,14 +528,27 @@ public class ContentExporter : IContentExporter
             bool firstItem = true;
             foreach (var itemText in items.Where(i => !string.IsNullOrWhiteSpace(i)))
             {
-                var itemOe = new OutlineElement {
+                var itemOe = new OutlineElement
+                {
                     NumberList = listSettings
                 };
-                itemOe.AppendChildLast(new RichText { SpaceBefore = firstItem ? 2f : 1f, SpaceAfter = 1f, Text = itemText!.Trim(), ParagraphStyle = CloneStyle(itemStyle) });
+                var richText = new RichText
+                {
+                    SpaceBefore = firstItem ? 2f : 1f,
+                    SpaceAfter = 1f,
+                    Text = itemText!.Trim(),
+                    ParagraphStyle = CloneStyle(itemStyle)
+                };
+
+                itemOe.AppendChildLast(richText);
                 outline.AppendChildLast(itemOe);
-                internalVOffset += 15f;
+
                 firstItem = false;
             }
+
+            // Fixed vertical offset per item regardless of text length
+            int itemCount = items.Count(i => !string.IsNullOrWhiteSpace(i));
+            internalVOffset += itemCount * 15f;
         }
 
         vOffset += internalVOffset;
