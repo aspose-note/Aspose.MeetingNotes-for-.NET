@@ -10,6 +10,7 @@
 - [x] Output generation in Markdown, HTML, PDF, OneNote (via `--output`)
 - [x] JSON configuration file support and CLI overrides
 - [x] Aspose license support for proprietary export formats
+- [x] Include action items in all export formats (Markdown, OneNote, PDF, HTML)
 
 ## Quality and Tooling
 
